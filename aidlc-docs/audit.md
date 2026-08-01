@@ -631,3 +631,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation(Part 2)、Step 1〜5(CLI・テスト部分)完了。config.example.*.yaml更新へ継続。
 
 ---
+
+## Code Generation(Part 2)改修完了: Step 5後半・Step 6
+**Timestamp**: 2026-08-02T07:00:00Z
+**User Input**: (継続作業、追加の承認要求なし)
+**AI Response**: Step 5残り(`config.example.en.yaml`/`config.example.ja.yaml`の新スキーマ全面改訂)を実施しコミット(`226f4ba`)。続けてStep 6を実施: `demo/run-demo.sh`の設定生成をstages形式に書き換え、実機実行(`bash demo/run-demo.sh`)でarchive→relocate→deleteのカスケードが同一実行内で機能することを確認。`README.md`の「設定ファイル」節をstages構成(任意順序・任意回数、ステージ間でtargetsを共有しない旨)に書き換え、N1<=N2<=N3の記述を削除。`code-generation-summary.md`に改訂履歴・最新モジュール説明・テスト件数(lib 74件/bin 4件/cli 22件)を反映。最終確認として`cargo test`(全80件)・`cargo clippy --all-targets -- -D warnings`(警告0件)・`cargo fmt --check`(差分0件)が全て成功することを確認しコミット(`2b88a1a`)。
+**Context**: CONSTRUCTION PHASE - Code Generation改修計画(Part 2)、Step 1〜6すべて完了。標準2択の完了メッセージ提示へ。
+
+---
