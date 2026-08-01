@@ -234,3 +234,10 @@
 **Context**: CONSTRUCTION PHASE - Functional Design 完了 → NFR Requirements 開始。
 
 ---
+
+## NFR Requirements - Plan & Questions Created
+**Timestamp**: 2026-08-01T17:55:00Z
+**AI Response**: Functional Design成果物とrequirements.mdのNFR項目を分析。多くのNFRは既に確定済みのため、技術スタック選定に関する新たな論点4件(T1: YAML crateの選定(serde_yaml archived問題)、T2: ローカルタイムゾーン取得クレートの追加可否、T3: サプライチェーンセキュリティツール(cargo-deny等)、T4: Rust edition/MSRV方針)をAI推奨案付きで`neatnik-cli-nfr-requirements-plan.md`に作成し回答待ち。
+**Context**: CONSTRUCTION PHASE - NFR Requirements Step 2-4。ユーザー回答待ち。
+
+---
