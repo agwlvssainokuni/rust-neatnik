@@ -152,13 +152,22 @@ pub struct BundleRunResult {
     pub stale: Vec<PathBuf>,
 }
 
+/// 期間キー1件分のバンドル処理結果。1グループの失敗が他のグループの処理を止めないよう、
+/// グループ単位で成功/失敗を保持する(「1ファイルの失敗はジョブ全体を止めない」方針と同じ考え方)
+#[derive(Debug)]
+pub struct BundleGroupResult {
+    pub period_key: String,
+    pub members: Vec<PathBuf>,
+    pub outcome: Result<BundleRunResult, ArchiveError>,
+}
+
 /// BR-10: 各ファイルの基準日時でグルーピングし、期間キーごとにバンドルを作成する(ターゲット単位)
 pub fn run_bundle(
     job_name: &str,
     target: &WatchTargetRef,
     candidates: &[FileCandidate],
     config: &ArchiveConfig,
-) -> Result<Vec<BundleRunResult>, NeatnikError> {
+) -> Result<Vec<BundleGroupResult>, NeatnikError> {
     let timezone = resolve_timezone(config.bundle_timezone.as_deref())?;
     let mut groups: BTreeMap<String, Vec<&FileCandidate>> = BTreeMap::new();
     for candidate in candidates {
@@ -166,10 +175,18 @@ pub fn run_bundle(
         groups.entry(key.0).or_default().push(candidate);
     }
 
-    let mut results = Vec::new();
-    for (period_key, members) in groups {
-        results.push(run_bundle_group(job_name, target, &period_key, &members, config)?);
-    }
+    let results = groups
+        .into_iter()
+        .map(|(period_key, members)| {
+            let member_paths = members.iter().map(|member| member.path.clone()).collect();
+            let outcome = run_bundle_group(job_name, target, &period_key, &members, config);
+            BundleGroupResult {
+                period_key,
+                members: member_paths,
+                outcome,
+            }
+        })
+        .collect();
     Ok(results)
 }
 
@@ -179,7 +196,7 @@ fn run_bundle_group(
     period_key: &str,
     members: &[&FileCandidate],
     config: &ArchiveConfig,
-) -> Result<BundleRunResult, NeatnikError> {
+) -> Result<BundleRunResult, ArchiveError> {
     let bundle_path = ArchiveNamer::bundle_name(job_name, &target.name, period_key, &target.basedir);
 
     if let Ok(metadata) = fs::metadata(&bundle_path) {
@@ -211,8 +228,7 @@ fn run_bundle_group(
                     return Err(ArchiveError::StaleBundleMember {
                         path: member.path.clone(),
                         bundle: bundle_path.clone(),
-                    }
-                    .into());
+                    });
                 }
             }
         }
@@ -549,7 +565,7 @@ mod tests {
 
         let results = run_bundle("job", &target, &candidates, &config).unwrap();
         assert_eq!(results.len(), 1);
-        let bundle = &results[0];
+        let bundle = results[0].outcome.as_ref().unwrap();
         assert!(bundle.created);
         assert!(bundle.bundle_path.exists());
         assert!(!file_a.exists());
@@ -584,7 +600,7 @@ mod tests {
             &config,
         )
         .unwrap();
-        assert!(first[0].created);
+        assert!(first[0].outcome.as_ref().unwrap().created);
         assert!(file_a.exists(), "keep_original: true should retain the source file");
 
         // 2回目: basis_datetime <= 既存バンドルのmtime のため冪等にスキップされる
@@ -595,9 +611,10 @@ mod tests {
             &config,
         )
         .unwrap();
-        assert!(!second[0].created);
-        assert_eq!(second[0].included, vec![file_a.clone()]);
-        assert!(second[0].stale.is_empty());
+        let second_outcome = second[0].outcome.as_ref().unwrap();
+        assert!(!second_outcome.created);
+        assert_eq!(second_outcome.included, vec![file_a.clone()]);
+        assert!(second_outcome.stale.is_empty());
 
         // basis_datetimeが既存バンドルのmtimeより新しい場合はstale扱い(Warn)
         let newer_basis = Utc.with_ymd_and_hms(2026, 7, 25, 23, 0, 0).unwrap();
@@ -608,8 +625,9 @@ mod tests {
             &config,
         )
         .unwrap();
-        assert!(!third[0].created);
-        assert_eq!(third[0].stale, vec![file_a.clone()]);
+        let third_outcome = third[0].outcome.as_ref().unwrap();
+        assert!(!third_outcome.created);
+        assert_eq!(third_outcome.stale, vec![file_a.clone()]);
     }
 
     #[test]
@@ -637,13 +655,14 @@ mod tests {
 
         config.on_stale_bundle_member = OnStaleBundleMember::Error;
         let newer_basis = Utc.with_ymd_and_hms(2026, 7, 25, 23, 0, 0).unwrap();
-        let result = run_bundle(
+        let results = run_bundle(
             "job",
             &target,
             &[make_candidate(dir.path(), "t", file_a.clone(), newer_basis)],
             &config,
-        );
-        assert!(result.is_err());
+        )
+        .unwrap();
+        assert!(results[0].outcome.is_err());
     }
 
     proptest! {

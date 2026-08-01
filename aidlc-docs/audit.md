@@ -382,3 +382,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 10(notify モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 11完了(archive.rsのAPI改修を伴う)
+**Timestamp**: 2026-08-01T20:13:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/pipeline.rs`に`run_job()`/`run_all()`、`StageOutcome`/`JobSummary`を実装。1ファイルのカスケード処理(BR-9: basis_datetimeは全ステージで不変という設計上の簡略化に気づき、経過日数判定を`elapsed_days(now, basis_datetime)`の単純比較に統一)、バンドル処理単位(1グループ=1候補として以降のステージへ引き継ぐ、BR-10/BR-3のstaleメンバーは個別に継続)、削除段のみジョブ全体でバッチ化しセーフティブレーキを一括評価(BR-13)を実装。退避が失敗/衝突スキップした候補は安全側に倒して削除段へ進めない設計とした。**実装中に気づいた設計改善として、`archive::run_bundle`が1グループの失敗(on_stale_bundle_member=Error)で全グループの処理を中断してしまう問題を発見し、`BundleGroupResult`(グループ単位でOk/Errを保持)に改修し、他グループの処理を継続できるようにした(「1ファイルの失敗はジョブ全体を止めない」方針をグループ単位にも適用)**。単体テスト8件(カスケード完走、in_use/猶予未経過スキップ、dry-run、ジョブロック競合、セーフティブレーキ発動、バンドル統合、複数ジョブ独立処理)を追加し、`cargo test --lib`(71件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 11(pipeline モジュール)完了。
+
+---

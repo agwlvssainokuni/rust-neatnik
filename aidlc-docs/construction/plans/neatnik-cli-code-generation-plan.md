@@ -68,11 +68,12 @@
 - [x] `Notifier`トレイトの定義のみ(FR-10、実装なし)
 
 ### Step 11: pipeline モジュール
-- [ ] `run_job()`: 1ジョブのスキャン→カスケードパイプライン処理(business-logic-model.md 2-4章)
-- [ ] `run_all()`: 複数ジョブの逐次処理(BR-15)
-- [ ] 等号設定時のカスケード処理(BR-9)、バンドル処理単位の分岐(business-logic-model.md 4章)
-- [ ] ジョブサマリ集計(`JobSummary`)
-- [ ] 単体テスト
+- [x] `run_job()`: 1ジョブのスキャン→カスケードパイプライン処理(business-logic-model.md 2-4章)
+- [x] `run_all()`: 複数ジョブの逐次処理(BR-15)
+- [x] 等号設定時のカスケード処理(BR-9)、バンドル処理単位の分岐(business-logic-model.md 4章)
+- [x] ジョブサマリ集計(`JobSummary`)
+- [x] 単体テスト
+- **付随改修**: `archive::run_bundle`を`BundleGroupResult`に改修し、1グループの失敗が他グループを止めないようにした
 
 ### Step 12: CLI(bin/main.rs)
 - [ ] `clap`によるサブコマンド定義: `run`, `validate`, `init`, `list`, `completions`, `--version`(FR-6, FR-12)
