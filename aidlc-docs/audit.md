@@ -655,3 +655,18 @@
 **Context**: CONSTRUCTION PHASE - Build and Testステージ開始。
 
 ---
+
+## Build and Test Stage
+**Timestamp**: 2026-08-02T08:06:00Z
+**Build Status**: Success
+**Test Status**: Pass(`cargo test`全96件: lib 74件・bin 4件・cli統合22件、すべて成功。`cargo clippy --all-targets -- -D warnings`警告0件、`cargo fmt --check`差分0件、`cargo doc --no-deps`警告0件)
+**Files Updated** (既存のBuild and Testドキュメントをstages再設計・テスト件数変化に合わせて改訂):
+- build-instructions.md(確認日付更新)
+- unit-test-instructions.md(テスト件数73→74、モジュール別内訳をconfig/scan/relocate/pipelineの変更に合わせて更新)
+- integration-test-instructions.md(テスト件数14→22、Scenario 2をステージ独立スキャンモデルの説明に更新、Scenario 3のdry-run挙動説明を更新)
+- performance-test-instructions.md(変更なし、スキーマ非依存のため)
+- security-test-instructions.md(Windows実機ビルド確認済みの旨に更新)
+- build-and-test-summary.md(改訂履歴追記、テスト件数・既知の制約を最新化。Windows制約を解決済みへ移動)
+**Context**: CONSTRUCTION PHASE - Build and Testステージ、ドキュメント最新化・全チェック再実行完了。ユーザー承認待ち。
+
+---

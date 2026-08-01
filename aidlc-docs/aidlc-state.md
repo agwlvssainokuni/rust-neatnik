@@ -47,8 +47,8 @@
 - [x] NFR Requirements - EXECUTE (承認済み — 2026-08-01T18:15:00Z)
 - [x] NFR Design - EXECUTE (承認済み — 2026-08-01T18:28:00Z)
 - [x] Infrastructure Design - SKIP(クラウドインフラなし)
-- [x] Code Generation - EXECUTE (承認済み — 2026-08-01T22:51:00Z)
-- [ ] Build and Test - EXECUTE (実施完了、承認待ち — 2026-08-01T22:56:00Z)
+- [x] Code Generation - EXECUTE (承認済み — 2026-08-02T07:47:00Z、stages再設計改修含む)
+- [ ] Build and Test - EXECUTE (実施完了、承認待ち — 2026-08-02T08:06:00Z、stages再設計に伴う再検証・ドキュメント最新化済み)
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations - PLACEHOLDER

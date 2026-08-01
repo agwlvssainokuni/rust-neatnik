@@ -29,7 +29,7 @@ cargo audit
 
 ## 3. `unsafe`コードのレビュー(SECURITY-15関連)
 
-本プロジェクトで`unsafe`を使用しているのは`src/scan.rs`の`windows_impl`モジュール(`cfg(windows)`)のみ。`CreateFileW`によるファイルオープン試行で、内容・タイムスタンプを変更しないことをコメントで明記済み。Windows環境でのビルド・動作確認はBuild and Testステージの範囲外(macOS開発環境のため未検証、`aidlc-docs/construction/neatnik-cli/code/code-generation-summary.md`に既知の制約として記録済み)。Windows環境が利用可能になった時点で以下を確認する。
+本プロジェクトで`unsafe`を使用しているのは`src/scan.rs`の`windows_impl`モジュール(`cfg(windows)`)のみ。`CreateFileW`によるファイルオープン試行で、内容・タイムスタンプを変更しないことをコメントで明記済み。開発環境(macOS)では直接ビルドできないが、GitHub Actionsのリリースワークフロー(`.github/workflows/release.yml`)でWindows(x86_64-pc-windows-msvc)実機ビルドを実施し、成功を確認済み(2026-08-01、詳細は`aidlc-docs/audit.md`参照)。ローカルでクロスコンパイル確認したい場合は以下を実行する。
 
 ```bash
 cargo build --release --target x86_64-pc-windows-msvc
@@ -49,6 +49,6 @@ cargo clippy --all-targets --target x86_64-pc-windows-msvc -- -D warnings
 |---|---|
 | cargo-deny(脆弱性/ライセンス/重複依存) | 未実行(未インストール環境)。CI/リリース前に実行を推奨 |
 | パストラバーサル対策 | 自動テストで確認済み |
-| unsafeコードレビュー | レビュー済み(Windows実機確認は保留) |
+| unsafeコードレビュー | レビュー済み(Windows実機ビルドもGitHub Actionsで確認済み) |
 | ログへのシークレット非混入 | 該当リスクなし(構造的に確認済み) |
 | エラーメッセージの内部情報非露出 | 自動テストで確認済み |

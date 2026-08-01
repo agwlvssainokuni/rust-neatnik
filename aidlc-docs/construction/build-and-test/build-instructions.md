@@ -31,7 +31,7 @@ cargo build --release
 ### 4. Verify Build Success
 - **Expected Output**: `Finished \`release\` profile [optimized] target(s) in ...s`
 - **Build Artifacts**: `target/release/neatnik`(単一バイナリ、lib自体は`target/release/libneatnik.rlib`)
-- **Common Warnings**: なし。`cargo build`/`cargo build --release`ともに警告0件であることを確認済み(2026-08-01時点)
+- **Common Warnings**: なし。`cargo build`/`cargo build --release`ともに警告0件であることを確認済み(2026-08-02時点)
 
 ## Troubleshooting
 
