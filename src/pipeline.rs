@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 全体オーケストレーション。1ジョブのスキャン→カスケードパイプライン処理、複数ジョブの
+//! 逐次処理(BR-15)を実装する。
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;

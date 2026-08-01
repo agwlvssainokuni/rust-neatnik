@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! neatnik: ログ・作業ファイル・一時ファイルの自動ハウスキーピング
+//! (アーカイブ→退避→削除)を行うCLIツールのライブラリクレート。
+//!
+//! `pipeline`モジュールがエントリポイントであり、`config`で読み込んだジョブ設定を
+//! `scan`/`archive`/`relocate`/`delete`/`lock`の各モジュールを組み合わせて実行する。
+//! `clock`/`scan::WriteGuardDetector`/`lock::JobLock`/`notify::Notifier`はテスト容易性・
+//! 移植性のためにトレイトとして抽象化している(詳細はリポジトリのREADME.mdを参照)。
+
 pub mod archive;
 pub mod clock;
 pub mod config;

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 通知抽象(FR-10)。MVPではトレイトの定義のみ行い、具体実装(メール/Slack等)は行わない。
+
 use std::path::PathBuf;
 
 /// エラー・セーフティブレーキ発動等の通知イベント(FR-10)。

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 圧縮・アーカイブ処理(単体ファイル/バンドル、FR-2、BR-3、BR-8、BR-9、BR-10)。
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};

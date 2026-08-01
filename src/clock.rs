@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 「現在時刻」取得の抽象(FR-13の`--now`オーバーライドをテスト容易な形で実現する)。
+
 use chrono::{DateTime, Utc};
 
 /// 「現在時刻」取得の抽象。テスト容易性(PBT-09)と`--now`オーバーライド(FR-13)のために導入する。

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 退避(保管フォルダへの移動)処理(FR-3、BR-11、BR-12)。
+
 use std::fs;
 use std::path::{Path, PathBuf};
 

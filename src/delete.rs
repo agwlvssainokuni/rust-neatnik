@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 削除処理・セーフティブレーキ(FR-4、BR-13、BR-14)。
+
 use std::fs;
 use std::path::PathBuf;
 

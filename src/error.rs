@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 各モジュール共通のドメインエラー型。
+
 use std::path::PathBuf;
 
 use thiserror::Error;

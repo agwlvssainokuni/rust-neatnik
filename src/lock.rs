@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 多重起動防止のアドバイザリファイルロック(FR-8、BR-16)。
+
 use std::fs;
 use std::path::{Path, PathBuf};
 

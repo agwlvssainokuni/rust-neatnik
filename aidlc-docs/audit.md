@@ -422,3 +422,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 15(CLI統合テスト)完了。
 
 ---
+
+## Code Generation Part 2 - Step 16完了
+**Timestamp**: 2026-08-01T22:05:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: 全モジュール(`error`/`clock`/`config`/`scan`/`archive`/`relocate`/`delete`/`lock`/`notify`/`pipeline`)にモジュールレベルのrustdoc(`//!`)を追加、`lib.rs`にクレート全体の概要ドキュメントを追加し`cargo doc --no-deps`で警告0件を確認。`README.md`(概要、インストール、クイックスタート、コマンド一覧、`--now`オプション、設定ファイル解説、アーキテクチャ、開発手順、ライセンス)を作成。`aidlc-docs/construction/neatnik-cli/code/code-generation-summary.md`に生成物一覧・テスト実績・既知の制約(BR-13永続ブレーキ未実装、Windows版WriteGuardDetector未検証、アーカイブ重複作成の既知の限界)・依存クレート差分(filetime追加)をまとめた。`cargo test`(lib 73件+統合14件)・`cargo clippy --all-targets`で警告なし・全件成功を再確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 16(ドキュメント生成)完了。
+
+---

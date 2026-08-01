@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! ファイル走査・基準日時決定・書き込み中判定(FR-1、BR-6、BR-7、BR-7.1)。
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;

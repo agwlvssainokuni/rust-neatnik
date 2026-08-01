@@ -95,9 +95,9 @@
 - [x] `assert_cmd`/`predicates`/`tempfile`による統合テスト: `init`でのファイル生成、`validate`の成功/失敗、`run --dry-run`、`--now`オーバーライド、引数なし実行時のガイド表示(14件、`tests/cli.rs`)
 
 ### Step 16: ドキュメント生成
-- [ ] `README.md`(概要、インストール、クイックスタート、コマンド一覧)を作成
-- [ ] 主要な公開APIにrustdocコメントを付与
-- [ ] `aidlc-docs/construction/neatnik-cli/code/`にコード生成サマリ(Markdown)を作成
+- [x] `README.md`(概要、インストール、クイックスタート、コマンド一覧)を作成
+- [x] 主要な公開APIにrustdocコメントを付与(全モジュールに`//!`概要+個別`///`は各Stepで実装済み)
+- [x] `aidlc-docs/construction/neatnik-cli/code/`にコード生成サマリ(Markdown)を作成
 
 ### Step 17: ビルド設定
 - [ ] `Cargo.toml`のreleaseプロファイル設定(最適化レベル等)

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! 設定モデル(YAML)の定義・パース・バリデーション(FR-7)。
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
