@@ -287,3 +287,10 @@
 **Context**: CONSTRUCTION PHASE - NFR Design 完了 → Infrastructure Design(SKIP) → Code Generation 開始。
 
 ---
+
+## Code Generation - Part 1 (Planning) - Plan Created, Approval Requested
+**Timestamp**: 2026-08-01T18:32:00Z
+**AI Response**: Functional Design/NFR Requirements/NFR Designの全成果物を踏まえ、17ステップのCode Generation計画(Project Structure Setup、error/clock/config/scan/archive/relocate/delete/lock/notify/pipelineの各モジュール、CLI、config.example.yaml、プロパティテスト整備、CLI統合テスト、ドキュメント、ビルド設定)を`neatnik-cli-code-generation-plan.md`に作成。各ステップに対応するFR/BR/PBT IDを明記し、ライセンスヘッダー付与ルールも横断的ルールとして明記。ユーザーへ承認依頼を提示。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 1 Step 6-7。承認待ち。
+
+---
