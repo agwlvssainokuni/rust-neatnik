@@ -334,3 +334,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 4(config モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 5完了
+**Timestamp**: 2026-08-01T19:09:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/scan.rs`に`FileCandidate`/`WatchTargetRef`/`WriteGuardDetector`トレイトを実装。`UnixWriteGuardDetector`(flockアドバイザリロック検知+直近mtimeヒューリスティック、BR-7)、`WindowsWriteGuardDetector`(共有モードオープン試行によるERROR_SHARING_VIOLATION検知、windows-sys使用、`cfg(windows)`のためこの環境ではビルド未検証・Build and Testステージで要検証)を実装。`FilenameDateRule`の上から順の照合(BR-7.1、basenameのみ)、`is_included`によるinclude/exclude評価(BR-6、excludeが優先)、`scan_target`でのパストラバーサル対策(canonicalize+`is_within_basedir`)を実装。単体テスト14件(tempfileによるシンボリックリンク除外・日付抽出・ロック検知の検証を含む)を追加し、`cargo test --lib`(25件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 5(scan モジュール)完了。
+
+---

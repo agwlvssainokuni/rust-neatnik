@@ -35,12 +35,12 @@
 - [x] 単体テスト + プロパティテスト(BR-1の大小関係検証、PBT-03)
 
 ### Step 5: scan モジュール
-- [ ] `FileCandidate`、`WriteGuardDetector`トレイトを実装
-- [ ] `UnixWriteGuardDetector`(flock検知+直近更新時刻ヒューリスティック、BR-7)
-- [ ] `WindowsWriteGuardDetector`(`windows-sys`による共有モードオープン試行、BR-7)
-- [ ] `FilenameDateRule`の順次照合ロジック(BR-7.1、basenameのみに照合)
-- [ ] include/exclude評価(BR-6)
-- [ ] 単体テスト
+- [x] `FileCandidate`、`WriteGuardDetector`トレイトを実装
+- [x] `UnixWriteGuardDetector`(flock検知+直近更新時刻ヒューリスティック、BR-7)
+- [x] `WindowsWriteGuardDetector`(`windows-sys`による共有モードオープン試行、BR-7)。`cfg(windows)`のためmacOS開発環境ではビルド未検証、Build and Testステージでの検証が必要
+- [x] `FilenameDateRule`の順次照合ロジック(BR-7.1、basenameのみに照合)
+- [x] include/exclude評価(BR-6)
+- [x] 単体テスト
 
 ### Step 6: archive モジュール
 - [ ] `ArchiveNamer`(単体ファイル命名 BR-8、バンドル命名 BR-8)
