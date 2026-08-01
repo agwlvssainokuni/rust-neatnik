@@ -65,7 +65,7 @@
 - [x] 単体テスト
 
 ### Step 10: notify モジュール
-- [ ] `Notifier`トレイトの定義のみ(FR-10、実装なし)
+- [x] `Notifier`トレイトの定義のみ(FR-10、実装なし)
 
 ### Step 11: pipeline モジュール
 - [ ] `run_job()`: 1ジョブのスキャン→カスケードパイプライン処理(business-logic-model.md 2-4章)
