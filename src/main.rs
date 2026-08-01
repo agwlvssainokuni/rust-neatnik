@@ -28,8 +28,16 @@ use neatnik::pipeline::{self, JobSummary};
 use neatnik::scan::platform_write_guard_detector;
 
 const DEFAULT_CONFIG_PATH: &str = "config.yaml";
-/// `neatnik init`が出力するサンプル設定(FR-11)。リポジトリ同梱の`config.example.yaml`と共通
-const SAMPLE_CONFIG: &str = include_str!("../config.example.yaml");
+/// `neatnik init`が出力するサンプル設定(FR-11)。リポジトリ同梱の`config.example.{en,ja}.yaml`と共通
+const SAMPLE_CONFIG_EN: &str = include_str!("../config.example.en.yaml");
+const SAMPLE_CONFIG_JA: &str = include_str!("../config.example.ja.yaml");
+
+fn sample_config(locale: Locale) -> &'static str {
+    match locale {
+        Locale::En => SAMPLE_CONFIG_EN,
+        Locale::Ja => SAMPLE_CONFIG_JA,
+    }
+}
 
 #[derive(Parser)]
 #[command(name = "neatnik", version)]
@@ -221,7 +229,7 @@ fn cmd_init(args: InitArgs, locale: Locale) -> anyhow::Result<()> {
     if args.output.exists() && !args.force {
         anyhow::bail!(msg::already_exists(locale, &args.output));
     }
-    std::fs::write(&args.output, SAMPLE_CONFIG)?;
+    std::fs::write(&args.output, sample_config(locale))?;
     println!("{}", msg::wrote_sample_config(locale, &args.output));
     Ok(())
 }

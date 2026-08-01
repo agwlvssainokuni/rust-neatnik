@@ -85,6 +85,39 @@ fn init_creates_a_sample_config_file() {
 }
 
 #[test]
+fn init_generates_an_english_commented_config_by_default() {
+    let dir = tempdir().unwrap();
+    let output = dir.path().join("config.yaml");
+
+    neatnik()
+        .env_remove("LANG")
+        .env_remove("LC_ALL")
+        .env_remove("LC_MESSAGES")
+        .args(["init", "--output"])
+        .arg(&output)
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(&output).unwrap();
+    assert!(content.starts_with("# neatnik sample configuration file"));
+}
+
+#[test]
+fn init_lang_ja_generates_a_japanese_commented_config() {
+    let dir = tempdir().unwrap();
+    let output = dir.path().join("config.yaml");
+
+    neatnik()
+        .args(["--lang", "ja", "init", "--output"])
+        .arg(&output)
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(&output).unwrap();
+    assert!(content.starts_with("# neatnik サンプル設定ファイル"));
+}
+
+#[test]
 fn init_refuses_to_overwrite_without_force() {
     let dir = tempdir().unwrap();
     let output = dir.path().join("config.yaml");

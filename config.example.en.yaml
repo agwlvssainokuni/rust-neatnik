@@ -1,0 +1,62 @@
+# neatnik sample configuration file
+#
+# `neatnik init` produces the same content as this file.
+# See README.md for the meaning of each field.
+#
+# After editing, we recommend checking things in this order:
+#   1. neatnik validate --config <this file>
+#   2. neatnik run --config <this file> --dry-run
+#   3. neatnik run --config <this file>
+#
+# You can list multiple jobs under "jobs" (add another "- name: ..." entry below).
+# For each job, archive.after_days(N1) <= relocate.after_days(N2) <= delete.after_days(N3)
+# must hold (compared only among enabled stages; equal values are allowed).
+
+jobs:
+  - name: app-server-logs
+
+    # Watch targets (basedir + include/exclude patterns). A job may list multiple targets
+    targets:
+      - basedir: "/var/log/app"
+        include:
+          - "**/*.log"
+        exclude:
+          - "current.log"
+        # Source of the basis datetime: mtime (default) | ctime | filename_date
+        basis: mtime
+        # Only used when basis: filename_date. Rules are matched top to bottom, first match wins
+        # filename_date_rules:
+        #   - regex: "^app_log\\.(?P<date>\\d{4}-\\d{2}-\\d{2})\\.txt$"
+        #     format: "%Y-%m-%d"
+
+    # Archive (compression) stage
+    archive:
+      enabled: true
+      after_days: 7
+      # gzip | zip | tar.gz
+      format: gzip
+      # none (single-file compression) | daily | weekly | monthly (bundle compression)
+      bundle: none
+      # bundle_timezone: "Asia/Tokyo"  # defaults to the local timezone
+      keep_original: false
+      # Only used when bundle is daily/weekly/monthly: warn | error
+      on_stale_bundle_member: warn
+
+    # Relocate (move to storage) stage
+    relocate:
+      enabled: true
+      after_days: 30
+      destination: "/mnt/storage/app-logs"
+      # preserve (keep the path relative to basedir) | year_month (YYYY/MM classification)
+      layout: preserve
+      # rename (append a sequence number) | skip | error
+      on_conflict: rename
+
+    # Delete stage
+    delete:
+      enabled: true
+      after_days: 365
+      safety_brake:
+        enforce: true
+        count_threshold: 1000
+        size_threshold_gb: 50

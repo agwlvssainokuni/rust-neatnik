@@ -543,3 +543,11 @@
 **Context**: i18n(英語/日本語)対応完了。CLI層のみを対象とするスコープをREADME.md・コード生成サマリに明記。
 
 ---
+
+## サンプル設定ファイル(neatnik init)のi18n対応
+**Timestamp**: 2026-08-02T00:20:00Z
+**User Input**: "initの時に作るサンプル設定ファイルもi18nできる？"
+**AI Response**: `config.example.yaml`(日本語コメント)を`config.example.ja.yaml`にリネームし、英語コメント版`config.example.en.yaml`を新規作成。`main.rs`で`SAMPLE_CONFIG_EN`/`SAMPLE_CONFIG_JA`の2つの`include_str!`定数を持ち、`sample_config(locale)`でロケールに応じて選択するよう変更。`neatnik init --lang en`/`--lang ja`双方の出力がリポジトリ同梱の対応するファイルと完全一致することを確認。README.mdの参照リンクを更新。CLI統合テスト2件(既定=英語、`--lang ja`=日本語)を追加。`cargo test`(統合22件)・`cargo clippy -D warnings`・`cargo fmt --check`で警告なし・全件成功を確認。
+**Context**: サンプル設定ファイルのi18n対応完了。
+
+---

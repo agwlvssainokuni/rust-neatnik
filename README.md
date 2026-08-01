@@ -82,7 +82,7 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
 - **relocate**: 退避設定(猶予日数、保管先、ディレクトリ構造、同名ファイル衝突時の挙動)
 - **delete**: 削除設定(猶予日数、セーフティブレーキ)
 
-完全な例は [`config.example.yaml`](./config.example.yaml)(`neatnik init`の出力と同一内容)を参照してください。
+完全な例は [`config.example.ja.yaml`](./config.example.ja.yaml)(日本語コメント)または [`config.example.en.yaml`](./config.example.en.yaml)(英語コメント)を参照してください。`neatnik init`は`--lang`/`LANG`環境変数に応じてどちらかと同一内容を出力します。
 
 **猶予日数の制約**: 有効化されているステージ同士でのみ、アーカイブ猶予日数(N1) <= 退避猶予日数(N2) <= 削除猶予日数(N3) である必要があります(等号は許容し、同一実行内でのカスケード処理として扱われます)。
 
