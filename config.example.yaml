@@ -2,11 +2,20 @@
 #
 # `neatnik init` の出力もこのファイルと同じ内容です。
 # 詳細な各項目の意味は README.md を参照してください。
+#
+# 編集後は次の順で確認することを推奨します:
+#   1. neatnik validate --config <このファイル>
+#   2. neatnik run --config <このファイル> --dry-run
+#   3. neatnik run --config <このファイル>
+#
+# jobs には複数のジョブを列挙できます(下に "- name: ..." を追加)。
+# 各ジョブの archive.after_days(N1) <= relocate.after_days(N2) <= delete.after_days(N3)
+# である必要があります(有効なステージ同士でのみ比較。等号も許容)。
 
 jobs:
   - name: app-server-logs
 
-    # 監視対象(basedir + include/exclude のパターン、複数指定可)
+    # 監視対象(basedir + include/exclude のパターン)。1ジョブに複数指定可
     targets:
       - basedir: "/var/log/app"
         include:

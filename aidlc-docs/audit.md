@@ -398,3 +398,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 12(CLI/main.rs)完了。
 
 ---
+
+## Code Generation Part 2 - Step 13完了
+**Timestamp**: 2026-08-01T21:54:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: Step 12で暫定作成した`config.example.yaml`を整備(推奨確認手順`validate`→`run --dry-run`→`run`のコメント、複数ジョブ可能・BR-1のN1<=N2<=N3制約の案内を追記)。`neatnik init`の出力とリポジトリ同梱の`config.example.yaml`が`include_str!`により完全に一致することを`diff`で確認した(FR-11: 単一テンプレートを両方に使う要件を充足)。`cargo test --lib`(71件)で全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 13(config.example.yaml/initテンプレート)完了。
+
+---

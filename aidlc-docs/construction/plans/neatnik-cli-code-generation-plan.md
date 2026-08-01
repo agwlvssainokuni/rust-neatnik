@@ -84,7 +84,7 @@
 - 手動E2E確認: 全サブコマンド、BR-5案内、dry-run不変更、実ファイルでのカスケード完走、`--now`オーバーライド
 
 ### Step 13: config.example.yaml とinitテンプレート
-- [ ] コメント付きサンプル設定を単一のテンプレート文字列として実装し、リポジトリ同梱の`config.example.yaml`と`neatnik init`の出力の両方に使う(FR-11)
+- [x] コメント付きサンプル設定を単一のテンプレート文字列として実装し、リポジトリ同梱の`config.example.yaml`と`neatnik init`の出力の両方に使う(FR-11)。`include_str!`で埋め込み、出力が完全一致することを`diff`で確認済み
 
 ### Step 14: プロパティベーステストの整備
 - [ ] `proptest`のジェネレータ(ドメイン型用、PBT-07)を整備
