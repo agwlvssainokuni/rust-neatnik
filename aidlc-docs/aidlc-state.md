@@ -4,7 +4,7 @@
 - **Project Name**: Neatnik(仮称。命名の最終確認は未了 — draft-spec.md 1章参照)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-08-01T08:10:00Z
-- **Current Stage**: INCEPTION - Workflow Planning
+- **Current Stage**: CONSTRUCTION - Functional Design (Unit: neatnik-cli)
 
 ## Workspace State
 - **Existing Code**: No
@@ -38,12 +38,12 @@
 - [ ] Reverse Engineering (N/A - Greenfield)
 - [x] Requirements Analysis (承認済み — 2026-08-01T14:40:00Z)
 - [ ] User Stories (スキップ — ユーザーからの追加指示なし)
-- [x] Workflow Planning (execution-plan.md作成完了、ユーザー承認待ち)
+- [x] Workflow Planning (承認済み — 2026-08-01T15:30:00Z)
 - [ ] Application Design - SKIP(単一クレート構成のため不要)
 - [ ] Units Generation - SKIP(単一ユニット `neatnik-cli` として進める)
 
 ### 🟢 CONSTRUCTION PHASE (Unit: neatnik-cli)
-- [ ] Functional Design - EXECUTE
+- [ ] Functional Design - EXECUTE (in progress)
 - [ ] NFR Requirements - EXECUTE
 - [ ] NFR Design - EXECUTE
 - [ ] Infrastructure Design - SKIP(クラウドインフラなし)
