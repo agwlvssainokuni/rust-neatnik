@@ -17,7 +17,7 @@ C) 命名は本要件定義のスコープ外とし、後日別途検討する
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ### Question A2
 初回リリース(MVP)のスコープはどこまでを想定しますか？
@@ -30,7 +30,7 @@ C) まず「アーカイブ→削除」の2段階(退避は後回し)を実装
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -45,7 +45,7 @@ B) draft-spec.md通り、gzip/zip/tar.gzすべてを初期実装に含める
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B
 
 ### Question B2
 圧縮処理のアトミック性(処理中断時に中途半端なアーカイブファイルを残さない)について、一時ファイル書き込み→成功時リネーム方式を採用しますか？
@@ -56,7 +56,7 @@ B) 不要(現状のシンプルな実装で十分)
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -73,7 +73,7 @@ C) 閾値超過の判定自体は行うが、実際に止めるかどうかは�
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: C
 
 ### Question C2
 同一ジョブの多重起動防止ロック機構は、どの方式を想定しますか？
@@ -86,7 +86,7 @@ C) 実装方式はAIに一任する
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A(`fd-lock`等のクロスプラットフォーム対応クレートで実装し、OS分岐はクレート内部に閉じ込める)
 
 ### Question C3
 「ロック中ファイル(他プロセスが書き込み中)は除外する」とありますが、判定方法についてどう考えますか？
@@ -99,7 +99,7 @@ C) 両方を組み合わせる
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: D(OSごとに検出戦略を分ける。Linux/macOSはC(flock検知+直近更新時刻ヒューリスティック、ベストエフォート)、Windowsは共有モードでのオープン試行によるERROR_SHARING_VIOLATION検出。オープン試行はファイル内容・タイムスタンプを変更しない)
 
 ### Question C4
 `run`コマンド実行時に、`validate`相当の設定検証(N1<N2<N3等)を毎回自動的に内部で行い、不正な設定なら実行前に中断する、という提案についてどうしますか？
@@ -110,7 +110,7 @@ B) 不要(ユーザーが事前に`validate`を実行する運用を徹底する
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ### Question C5
 各ステージが独立に無効化できる場合(例: アーカイブをスキップして退避のみ有効)、猶予日数の大小関係バリデーション(N1<N2<N3)はどう扱いますか？
@@ -121,7 +121,7 @@ B) 無効化されていても設定値が入力されていれば常に全体�
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -136,7 +136,7 @@ B) 処理済みファイルの記録(状態ファイルやメタデータ)を別
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ### Question D2
 ツール自身が出力するログファイルが、監視対象ディレクトリと重ならないようにする対応についてどうしますか？
@@ -147,7 +147,7 @@ B) 特に対応不要(ユーザーが除外パターンで自己管理する)
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B(暗黙の自動除外は「指定していない構成で動く」ことによる混乱・ミスリードを生むため不採用)
 
 ### Question D3
 非機能要件の「パフォーマンス：大量ファイル(数万件規模)でも実用的な時間で走査・処理できること」について、具体的な目標値はありますか？
@@ -158,7 +158,7 @@ B) 具体的な目標がある([Answer]に記載してください。例: 10万�
 
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ### Question D4
 対象OS・実行環境はどこまでサポートしますか？
@@ -171,7 +171,7 @@ C) Linux/macOS/Windows
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: C(OSによる制限事項・実装差異が生じることは許容する)
 
 ### Question D5
 通知機能(エラー時・削除件数閾値超過時にメール/Slack等)は、初回リリースのスコープに含めますか？
@@ -184,7 +184,7 @@ C) 初回リリースには一切含めない(traitの用意も不要)
 
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -199,7 +199,7 @@ B) No — skip all SECURITY rules (suitable for PoCs, prototypes, and experiment
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ### Question: Property-Based Testing Extension
 Should property-based testing (PBT) rules be enforced for this project?
@@ -212,7 +212,7 @@ C) No — skip all PBT rules (suitable for simple CRUD applications, UI-only pro
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B
 
 ### Question: Resiliency Extensions
 Should the resiliency baseline be applied to this project?
@@ -227,4 +227,4 @@ B) No — skip the resiliency baseline (suitable for PoCs, prototypes, and exper
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B

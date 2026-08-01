@@ -22,15 +22,15 @@
 ## Extension Configuration
 | Extension | Enabled | Decided At |
 |---|---|---|
-| Security Baseline | TBD | Requirements Analysis (回答待ち) |
-| Property-Based Testing | TBD | Requirements Analysis (回答待ち) |
-| Resiliency Baseline | TBD | Requirements Analysis (回答待ち) |
+| Security Baseline | Yes | Requirements Analysis |
+| Property-Based Testing | Partial(PBT-02, PBT-03, PBT-07, PBT-08, PBT-09のみ強制。他は非ブロッキング) | Requirements Analysis |
+| Resiliency Baseline | No | Requirements Analysis |
 
 ## Stage Progress
 ### 🔵 INCEPTION PHASE
 - [x] Workspace Detection
 - [ ] Reverse Engineering (N/A - Greenfield)
-- [ ] Requirements Analysis (in progress — clarifying questions issued)
+- [x] Requirements Analysis (requirements.md作成完了、ユーザー承認待ち)
 - [ ] User Stories (TBD)
 - [ ] Workflow Planning
 - [ ] Application Design (TBD)
