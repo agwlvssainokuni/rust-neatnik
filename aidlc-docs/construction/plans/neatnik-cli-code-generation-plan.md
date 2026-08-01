@@ -100,8 +100,11 @@
 - [x] `aidlc-docs/construction/neatnik-cli/code/`にコード生成サマリ(Markdown)を作成
 
 ### Step 17: ビルド設定
-- [ ] `Cargo.toml`のreleaseプロファイル設定(最適化レベル等)
-- [ ] 実際のビルド・テスト実行はBuild and Testステージで行う
+- [x] `Cargo.toml`のreleaseプロファイル設定(最適化レベル等)
+- [x] `cargo build --release`での軽い動作確認のみ実施。本格的なビルド・テスト実行はBuild and Testステージで行う
+
+## 全ステップ完了
+2026-08-01T22:07:00Z時点で17ステップすべて完了。
 
 ## Story Traceability
 User Storiesステージはスキップしているため、要件(FR-1〜FR-13, NFR-1〜NFR-PBT)およびビジネスルール(BR-1〜BR-17)への対応をトレーサビリティとして用いる。各Stepの説明内に対応する要件/ルールIDを明記済み。
