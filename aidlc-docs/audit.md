@@ -559,3 +559,11 @@
 **Context**: i18n関連コードの配置整理完了。
 
 ---
+
+## v0.1.1リリース
+**Timestamp**: 2026-08-02T00:44:00Z
+**User Input**: "0.1.1にしてリリースしましょう。"
+**AI Response**: `Cargo.toml`のversionを0.1.1に更新。`cargo build --release`・`cargo test`(22件)・`cargo clippy -D warnings`・`cargo fmt --check`で問題ないことを確認しコミット。`v0.1.1`タグを作成しpush、リリースワークフローを起動。
+**Context**: v0.1.1リリース作業(i18n対応・サンプル設定i18n・Windowsビルド修正を含む初のパッチリリース)。
+
+---
