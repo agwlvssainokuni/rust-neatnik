@@ -615,3 +615,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、basis: Ctime削除完了。
 
 ---
+
+## Functional Design(全改訂)承認、Code Generation改修計画作成
+**Timestamp**: 2026-08-02T06:24:00Z
+**User Input**: "承認します。Code Generationへ進めてください。"
+**AI Response**: neatnik-cli Functional Design(1〜4回の改訂全て)の承認と判断。`neatnik-cli-code-generation-revision-plan.md`を作成し、config/scan/archive/pipelineモジュールの改修、CLI・サンプル設定・READMEの更新、テスト更新の6ステップを提示。ユーザー承認待ち。
+**Context**: CONSTRUCTION PHASE - Code Generation改修計画(Part 1)、承認待ち。
+
+---
