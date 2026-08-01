@@ -59,6 +59,20 @@ neatnik run
 neatnik run --dry-run --now 2027-01-01T00:00:00Z
 ```
 
+### 表示言語(`--lang`)
+
+すべてのサブコマンドで共通の`--lang <en|ja>`オプションを受け付けます。省略時は`LC_ALL`/`LC_MESSAGES`/`LANG`環境変数を順に見て、値が`ja`で始まれば日本語、それ以外は英語になります。
+
+```sh
+neatnik --lang ja --help
+LANG=ja_JP.UTF-8 neatnik run --dry-run
+```
+
+対象はCLIが表示するヘルプ・ウェルカムガイド・サマリ出力・CLI固有のエラー案内(設定ファイル不在時の案内等)です。以下は対象外です。
+
+- `clap`自体が生成する構造テキスト(`Usage:`, `Options:`, `Print help`, `Print version`等) — clapに日本語化の仕組みがないための制約
+- 設定ファイルのバリデーションエラーメッセージ本文(`neatnik::config`等のライブラリ層が生成するもの) — 技術的な詳細情報のため英語のまま
+
 ## 設定ファイル
 
 設定ファイル(YAML)は`jobs`のリストとして複数のジョブを定義します。各ジョブは以下から構成されます。

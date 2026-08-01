@@ -19,6 +19,7 @@
 | モジュール | `src/lock.rs` | `JobLock`/`FileJobLock`(BR-16) |
 | モジュール | `src/notify.rs` | `Notifier`トレイト定義のみ(FR-10) |
 | モジュール | `src/pipeline.rs` | `run_job`/`run_all`、カスケード処理(BR-9、BR-15) |
+| モジュール(bin専用) | `src/i18n.rs` | CLI表示メッセージの英語/日本語対応(`--lang`、`LANG`/`LC_ALL`自動判定) |
 | テスト支援 | `src/test_support.rs` | proptest共通ジェネレータ(PBT-07) |
 | 統合テスト | `tests/cli.rs` | CLI E2Eテスト(assert_cmd) |
 | サンプル設定 | `config.example.yaml` | `neatnik init`と共通(`include_str!`) |
@@ -31,8 +32,9 @@
 ## テスト実績(最終)
 
 - `cargo test --lib`: 73件(単体テスト+proptestプロパティテスト)
-- `cargo test --test cli`: 14件(CLI統合テスト)
-- `cargo clippy --all-targets`: 警告0件
+- `cargo test --bin neatnik`: 4件(i18nの`--lang`パース単体テスト)
+- `cargo test --test cli`: 20件(CLI統合テスト、i18n関連6件を含む)
+- `cargo clippy --all-targets -- -D warnings`: 警告0件
 - `cargo doc --no-deps`: 警告0件
 
 ## 既知の制約・保留事項
@@ -40,8 +42,10 @@
 実装過程で識別され、コード中にコメントで明記済みの既知の制約:
 
 1. **BR-13後半の永続セーフティブレーキ**(`src/delete.rs`): `enforce: true`発動後、人手でロック解除するまで次回実行も自動的に止め続ける永続的な状態保持は、具体的なロックファイル形式・解除コマンドがFunctional/NFR Designで未確定のため未実装。現状は実行のたびに閾値を再評価する
-2. **Windows版`WriteGuardDetector`**(`src/scan.rs`): `windows-sys`による実装は`cfg(windows)`のためmacOS開発環境ではビルド未検証。Build and Testステージでの検証が必要
-3. **既存アーカイブ・バンドルの重複作成の可能性**(`src/archive.rs`): `keep_original: true`かつ、既に退避済みのアーカイブ/バンドルが元の作成場所から移動された後に再度スキャン対象になった場合、既存ファイルの存在チェックが「不在」と判定され、重複して新規アーカイブ/バンドルが作成される可能性がある。これはFR-9(存在チェックベースの冪等性)の設計上受け入れられた既知の限界であり、要件定義段階から一貫して許容されている
+2. **既存アーカイブ・バンドルの重複作成の可能性**(`src/archive.rs`): `keep_original: true`かつ、既に退避済みのアーカイブ/バンドルが元の作成場所から移動された後に再度スキャン対象になった場合、既存ファイルの存在チェックが「不在」と判定され、重複して新規アーカイブ/バンドルが作成される可能性がある。これはFR-9(存在チェックベースの冪等性)の設計上受け入れられた既知の限界であり、要件定義段階から一貫して許容されている
+3. **i18n(`src/i18n.rs`)の対象範囲**: CLI層(ヘルプ・ウェルカムガイド・サマリ・CLI固有のエラー案内)のみが英語/日本語対応。`clap`自体が生成する構造テキスト(`Usage:`, `Options:`, `Print help`等)はclapに日本語化の仕組みがなく英語のまま。ライブラリ層(`neatnik::config`等)のバリデーションエラーメッセージ本文も英語のまま(技術的詳細情報のため、意図的なスコープ外)
+
+**解決済みの制約**: Windows版`WriteGuardDetector`(`src/scan.rs`)は、GitHub ActionsのリリースワークフローでWindows実機ビルドを実施し、`windows-sys`のfeature不足によるビルドエラー(`E0432`)を修正済み(2026-08-01、詳細はaudit.md参照)。現在はLinux/macOS(x86_64, aarch64)/Windows全プラットフォームでビルド成功を確認済み。
 
 ## 依存クレートの変更(tech-stack-decisions.mdからの差分)
 

@@ -527,3 +527,19 @@
 **Context**: GitHub Release対応、Windowsビルド失敗の修正。修正後のタグ再pushはこの後実施。
 
 ---
+
+## v0.1.0タグ再push・リリース成功確認
+**Timestamp**: 2026-08-01T23:50:00Z
+**User Input**: (直前のワークフロー結果確認依頼の継続)
+**AI Response**: 修正コミットをmainにpush後、`v0.1.0`タグを削除して新しいコミットに付け替え、force pushでリリースワークフローを再起動(run id 30704427572)。ScheduleWakeup経由での確認(WebFetchの15分キャッシュにより一度古い結果を誤って見た点は、URLにダミークエリパラメータを付けて再取得することで解消)で、check-version・4プラットフォームビルド全て・GitHub Release作成ジョブすべて成功したことを確認。実際に作成されたGitHub Release([v0.1.0](https://github.com/agwlvssainokuni/rust-neatnik/releases/tag/v0.1.0))に4種のバイナリ(Linux/macOS x86_64/macOS aarch64/Windows)が添付されていることも確認済み。
+**Context**: GitHub Release対応が実際に動作することをエンドツーエンドで確認、完了。
+
+---
+
+## i18n(英語/日本語)対応の追加依頼
+**Timestamp**: 2026-08-02T00:15:00Z
+**User Input**: "i18nできる？英語と日本語のみでOK。"
+**AI Response**: ロケール判定方式(環境変数自動判定+`--lang`上書き、推奨)と翻訳対象範囲(`--help`/usageテキストも含めて全面翻訳)をAskUserQuestionで確認。`src/i18n.rs`(bin専用モジュール)を新規作成し、`Locale`(En/Ja)、`--lang`のargv事前スキャン(`--help`自体の表示言語を決めるためclap本パースより前に必要)、`LC_ALL`/`LC_MESSAGES`/`LANG`環境変数によるフォールバック判定、`clap::Command`の`mut_subcommand`/`mut_arg`によるabout/helpテキストの言語別差し替え、CLI層の実行時メッセージ(ウェルカムガイド・サマリ・エラー案内)の翻訳関数群を実装。`main.rs`を全面的に書き換え、各コマンド関数に`Locale`を引き渡すよう変更。**スコープの明確化**: clap自体が生成する構造テキスト(`Usage:`, `Options:`, `Print help`等)はclapに日本語化の仕組みがなく翻訳対象外、ライブラリ層(`neatnik::config`等)のバリデーションエラーメッセージ本文も意図的に英語のまま(技術的詳細情報のため)とし、README.mdに明記。実機で英語/日本語両方の`--help`(ルート・サブコマンド)、ウェルカムガイド、エラーメッセージ、環境変数自動判定を目視確認。単体テスト4件(`--lang`パース)、CLI統合テスト6件(ウェルカムガイド、`--lang`/環境変数切替、サブコマンドヘルプ、不正値拒否、エラー案内の翻訳)を追加。`cargo test`(lib 73件+bin 4件+統合20件)・`cargo clippy -D warnings`・`cargo fmt --check`・`cargo doc --no-deps`で警告なし・全件成功を確認。
+**Context**: i18n(英語/日本語)対応完了。CLI層のみを対象とするスコープをREADME.md・コード生成サマリに明記。
+
+---

@@ -275,3 +275,64 @@ fn version_flag_prints_the_crate_version() {
         .success()
         .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")));
 }
+
+#[test]
+fn welcome_guide_defaults_to_english() {
+    neatnik()
+        .env_remove("LANG")
+        .env_remove("LC_ALL")
+        .env_remove("LC_MESSAGES")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Getting started"));
+}
+
+#[test]
+fn lang_flag_switches_the_welcome_guide_to_japanese() {
+    neatnik()
+        .arg("--lang")
+        .arg("ja")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("はじめに"));
+}
+
+#[test]
+fn lang_env_var_switches_the_welcome_guide_to_japanese() {
+    neatnik()
+        .env("LANG", "ja_JP.UTF-8")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("はじめに"));
+}
+
+#[test]
+fn lang_flag_localizes_subcommand_help_text() {
+    neatnik()
+        .args(["--lang", "ja", "run", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ジョブを実行する"));
+}
+
+#[test]
+fn lang_flag_rejects_unsupported_values() {
+    neatnik()
+        .args(["--lang", "fr"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("fr"));
+}
+
+#[test]
+fn validate_missing_config_message_is_localized() {
+    let dir = tempdir().unwrap();
+    let missing = dir.path().join("no-such-config.yaml");
+
+    neatnik()
+        .args(["--lang", "ja", "validate", "--config"])
+        .arg(&missing)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("neatnik init"));
+}
