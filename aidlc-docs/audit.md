@@ -575,3 +575,19 @@
 **Context**: v0.1.1リリース完了(i18n対応・サンプル設定i18n・Windowsビルド修正を含む)。
 
 ---
+
+## アーカイブ自己参照バグの発見と設計見直し方針の決定
+**Timestamp**: 2026-08-02T01:03:00Z
+**User Input**: "単一ファイルgzipの場合。relocate と delete はどのようにして対象を特定しているのですか？" → "ということは、定常運用では「別実行に持ち越し」になるのですよね。includeパターンを.gzにもマッチさせると、archiveの処理対象にもなっちゃいますよね。" → "そもそもの話になるのですが。includeに*.log, と*.gzを一緒に並べて、一方はarchive対象、もう一方はrelocate対象というのは、筋が悪くないですか？" → "archive, relocate, delete のそれぞれで別々にtargetを指定させる、という方が筋が通っている気がしてきました。どう思いますか？" → "大幅な見直しになりますが、またプロセスの最初からやり直した方が良いでしょうか？それとも、改修として対応できるでしょうか？" → "OKです。"
+**AI Response**: ユーザーからの一連の質問を通じて、単一ファイル圧縮で`include`に`*.gz`を加えて別実行での退避・削除を成立させようとすると、archiveステージが自身の出力を再度圧縮し続ける重大バグ(二重・三重圧縮の連鎖)を実機検証で確認。バンドルモードでも同様に検証し、ファイル自体は壊れないがJobSummaryの集計が不正確になる中程度のバグを確認。さらに検討を進める中で、現行設計(`WatchTarget`がジョブ直下で3ステージ共有)には、relocateが別実行で完了した場合にdeleteが永遠に発動しない、より深刻な潜在バグがあることも判明。ユーザー提案の「archive/relocate/deleteそれぞれに独立した`targets`を持たせる」設計が、上記すべてのバグを構造的に解消する上位互換の設計であることに合意。プロセスの再開始要否について、影響範囲(Functional Design以降が対象、Requirements Analysis以前は概ね維持可能)を説明し、「改修」としてFunctional Design改訂→Code Generation→Build and Testを再度実施する方針をユーザーが承認。
+**Context**: CONSTRUCTION PHASE - neatnik-cli Functional Designの改訂に着手。
+
+---
+
+## Functional Design改訂完了
+**Timestamp**: 2026-08-02T01:32:00Z
+**User Input**: (なし。前段の合意に基づく作業継続)
+**AI Response**: `requirements.md`(FR-1に改訂注記追加)、`domain-entities.md`(JobConfig.targetsを廃止し、ArchiveConfig/RelocateConfig/DeleteConfigそれぞれに`targets`フィールドを追加)、`business-rules.md`(BR-2.1新規: ステージ有効時のtargets必須化、BR-6改訂: 自己参照リスクの軽減を記述、BR-9全面改訂: メモリ上の受け渡しからステージ独立スキャン方式へ、PBT-01表に回帰防止プロパティを追加)、`business-logic-model.md`(2章ジョブ処理フロー・3章1ステージの処理・4章バンドル処理単位を全面改訂、7章にプロパティテスト観点を追加)を更新。`neatnik-cli-functional-design-plan.md`に改訂経緯を追記。新たな[Answer]質問サイクルは設けず、既に合意済みの対話内容を直接設計docに反映した。
+**Context**: CONSTRUCTION PHASE - Functional Design改訂完了。ユーザー承認待ち。
+
+---

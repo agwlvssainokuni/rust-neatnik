@@ -2,21 +2,22 @@
 
 技術非依存の概念モデルとして記述する(Rustの型はあくまで実装イメージの参考)。
 
+> **改訂履歴(2026-08-02)**: `WatchTarget`のリストをジョブ直下(`JobConfig.targets`)から各ステージ設定(`ArchiveConfig.targets`/`RelocateConfig.targets`/`DeleteConfig.targets`)へ移動した。背景・理由はrequirements.md FR-1の改訂注記、およびbusiness-rules.md BR-9を参照。
+
 ## 設定モデル
 
 ### JobConfig
-ジョブ単位(監視対象×ルールの組)の設定。
+ジョブ単位(archive/relocate/deleteのルールの組)の設定。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| name | String | ジョブ名。ロックファイル名・バンドルアーカイブ名の一部にも使う |
-| targets | List\<WatchTarget\> | 監視対象(複数可、FR-1) |
-| archive | ArchiveConfig | アーカイブ段階の設定 |
-| relocate | RelocateConfig | 退避段階の設定 |
-| delete | DeleteConfig | 削除段階の設定 |
+| name | String | ジョブ名。ロックファイル名の一部にも使う |
+| archive | ArchiveConfig | アーカイブ段階の設定(自身の監視対象を含む) |
+| relocate | RelocateConfig | 退避段階の設定(自身の監視対象を含む) |
+| delete | DeleteConfig | 削除段階の設定(自身の監視対象を含む) |
 
 ### WatchTarget
-1つの監視対象ディレクトリとそのパターンを表す(FR-1、FD議論により導入)。
+1つの監視対象ディレクトリとそのパターンを表す(FR-1)。**archive/relocate/deleteの各ステージが自身の`targets`として個別に持つ**(2026-08-02改訂。旧設計ではジョブ直下で3ステージ共有していた)。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -49,6 +50,7 @@
 | フィールド | 型 | 説明 |
 |---|---|---|
 | enabled | bool | 有効/無効(スキップ可、FR-5) |
+| targets | List\<WatchTarget\> | **(2026-08-02追加)** アーカイブ対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須(新規バリデーション、business-rules.md参照) |
 | after_days (N1) | u32 | アーカイブ猶予日数 |
 | format | ArchiveFormat(Gzip\|Zip\|TarGz) | 圧縮形式(FR-2) |
 | bundle | BundleKind(None\|Daily\|Weekly\|Monthly) | まとめ方針(FR-2) |
@@ -60,15 +62,17 @@
 | フィールド | 型 | 説明 |
 |---|---|---|
 | enabled | bool | 有効/無効(スキップ可) |
+| targets | List\<WatchTarget\> | **(2026-08-02追加)** 退避対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須。通常はarchiveステージの出力先(単体圧縮なら元ファイルと同じディレクトリ)を指す |
 | after_days (N2) | u32 | 退避猶予日数 |
 | destination | PathBuf | 保管先ディレクトリ |
-| layout | LayoutKind(Preserve\|YearMonth) | 移動先ディレクトリ構造 |
+| layout | LayoutKind(Preserve\|YearMonth) | 移動先ディレクトリ構造。`Preserve`は当該候補が属する**このステージ自身の`WatchTarget.basedir`**からの相対パスを保持する |
 | on_conflict | ConflictPolicy(Rename\|Skip\|Error) | 同名ファイル衝突時の挙動 |
 
 ### DeleteConfig
 | フィールド | 型 | 説明 |
 |---|---|---|
 | enabled | bool | 有効/無効(スキップ可) |
+| targets | List\<WatchTarget\> | **(2026-08-02追加)** 削除対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須。通常はrelocateステージの保管先(`RelocateConfig.destination`)を指す |
 | after_days (N3) | u32 | 削除猶予日数 |
 | safety_brake | SafetyBrakeConfig | セーフティブレーキ設定 |
 
@@ -103,7 +107,7 @@ CLI引数から構築される実行コンテキスト。
 | フィールド | 型 | 説明 |
 |---|---|---|
 | path | PathBuf | ファイルパス |
-| target | WatchTargetRef | 由来するWatchTarget(basedir・ターゲット名)への参照。「元階層保持」の相対パス計算(FR-3)とバンドル命名(FR-2)に使う |
+| target | WatchTargetRef | 由来するWatchTarget(basedir・ターゲット名)への参照。**発見元のステージ自身の`targets`から得る**(2026-08-02改訂)。「元階層保持」の相対パス計算(FR-3)とバンドル命名(FR-2)に使う |
 | basis_datetime | DateTime | 基準日時(JobConfig.basisに従い決定) |
 | size_bytes | u64 | ファイルサイズ |
 | in_use | bool | 書き込み中と判定されたか(NFR-OS、OS別ロジック) |

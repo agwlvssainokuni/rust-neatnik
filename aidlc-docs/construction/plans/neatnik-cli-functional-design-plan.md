@@ -128,3 +128,15 @@ C) Other (please describe after [Answer]: tag below)
 
 ## Step 4: 回答受領後の進め方
 全ての[Answer]に回答後、内容を分析し、矛盾や曖昧な回答(「場合による」「どちらでも」等)があれば追加の確認質問を作成します。全て解消され次第、Functional Design成果物(`business-logic-model.md`, `business-rules.md`, `domain-entities.md`)を生成します。
+
+---
+
+## 改訂(2026-08-02): WatchTargetのステージ別分離
+
+Code Generation・Build and Testが完了しv0.1.1をリリースした後、単一ファイルアーカイブの別実行時retlocate/delete対象特定について実装済みコードを対話的に検証する中で、以下が判明した:
+
+1. 単体ファイルの`include`にアーカイブ出力拡張子(`.gz`等)を加えると、archiveステージが自身の出力を無限に再圧縮する重大バグ(実機検証で確認)
+2. バンドルモードでも同様の再スキャンでファイル破損はしないが、JobSummaryの集計が不正確になる中程度のバグ(実機検証で確認)
+3. さらに、旧設計(`WatchTarget`をジョブ直下で3ステージ共有)では、猶予日数を離した定常運用でrelocateが別実行で完了した場合、deleteが退避先ディレクトリを独立にスキャンする手段がなく永久に発動しないという、より深刻な潜在バグが判明
+
+ユーザーとの対話を経て、「archive/relocate/deleteそれぞれが独立した`targets`を持つ」設計への変更で合意。上記3つの不具合を構造的に解消する。この改訂は新たな[Answer]質問サイクルを設けず、対話内容に基づき`domain-entities.md`/`business-rules.md`(BR-2.1新規、BR-6・BR-9改訂)/`business-logic-model.md`(2〜4章全面改訂)を直接更新した。requirements.md FR-1にも改訂注記を追加済み。詳細はaidlc-docs/audit.mdの該当エントリを参照。
