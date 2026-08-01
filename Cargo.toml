@@ -1,6 +1,6 @@
 [package]
 name = "neatnik"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Automated housekeeping (archive, relocate, delete) for log, working and temporary files."
 license = "Apache-2.0"
