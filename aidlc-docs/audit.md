@@ -210,3 +210,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し(続き)。requirements.md・成果物2ファイルを更新。
 
 ---
+
+## Functional Design - FilenameDateRuleの正規表現がファイル名全体テンプレートとして使える旨を確認・明記
+**Timestamp**: 2026-08-01T17:45:00Z
+**User Input**: "念のため。日付抽出の正規表現は、キャプチャ「(?P<date>...)」が入っていれば良いので、「app_log.(?P<date>...).txt」とかでもOKですよね？(こうすればファイルごとに指定できる？)"
+**AI Response**: その理解で正しいことを確認。regexはファイル名全体に対するパターンであり、キャプチャの前後に任意のリテラルを含められるため、ファイル名テンプレートごとにルールを書くことで実質的に「ファイル(命名規則)ごと」の抽出が実現できる旨を回答。domain-entities.mdのFilenameDateRuleに具体例(複数の命名規則が混在するケース)を追記。
+**Context**: CONSTRUCTION PHASE - Functional Design、承認前の確認(続き)。domain-entities.mdを更新。
+
+---
