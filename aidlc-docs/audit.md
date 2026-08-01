@@ -101,3 +101,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
 
 ---
+
+## Requirements Analysis - 補足: ヘルプ充実・設定ファイル雛形生成
+**Timestamp**: 2026-08-01T15:10:00Z
+**User Input**: "あと、別ファイルのmanページを作成しない代わりに、コマンドのヘルプをできるだけ充実させたいです。サンプルの設定ファイルを作成するとかもやってくれると嬉しい。"
+**AI Response**: FR-6に`neatnik init`サブコマンドを追加し、新規FR-11(ドキュメント方針・設定ファイル雛形生成)を新設。manページを作らずCLIの`--help`充実で代替する方針、および`init`コマンドでコメント付きサンプル設定ファイルを生成する方針を明記。`config.example.yaml`(リポジトリ同梱)と`init`コマンドの出力を単一ソースから生成し二重管理を避ける設計方針も追記。
+**Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
+
+---
