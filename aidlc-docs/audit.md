@@ -623,3 +623,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation改修計画(Part 1)、承認待ち。
 
 ---
+
+## Code Generation改修計画(Part 1)承認
+**Timestamp**: 2026-08-02T06:30:00Z
+**User Input**: "OK"
+**AI Response**: `neatnik-cli-code-generation-revision-plan.md`の6ステップ計画を承認と判断し、Part 2(実装)に着手。Step 1〜4(config.rs/scan.rs/archive.rs/relocate.rs/pipeline.rsの改修)を完了、Step 5(main.rs改修、tests/cli.rsの新スキーマ追随)を実施中に`cargo test --test cli`で6件の失敗を検出(旧スキーマのYAMLフィクスチャが原因)し、`write_job_config`ヘルパーとdry-run件数期待値を新スキーマ・新独立スキャンモデルに合わせて修正。全22件成功を確認しコミット(`1cb4a71`)。
+**Context**: CONSTRUCTION PHASE - Code Generation(Part 2)、Step 1〜5(CLI・テスト部分)完了。config.example.*.yaml更新へ継続。
+
+---
