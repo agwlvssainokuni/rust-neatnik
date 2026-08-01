@@ -9,54 +9,65 @@
 #   3. neatnik run --config <this file>
 #
 # You can list multiple jobs under "jobs" (add another "- name: ..." entry below).
-# For each job, archive.after_days(N1) <= relocate.after_days(N2) <= delete.after_days(N3)
-# must hold (compared only among enabled stages; equal values are allowed).
+# Each job groups its stages under a single lock scope (only one run per job at a time).
 
 jobs:
   - name: app-server-logs
 
-    # Watch targets (basedir + include/exclude patterns). A job may list multiple targets
-    targets:
-      - basedir: "/var/log/app"
-        include:
-          - "**/*.log"
-        exclude:
-          - "current.log"
-        # Source of the basis datetime: mtime (default) | ctime | filename_date
-        basis: mtime
-        # Only used when basis: filename_date. Rules are matched top to bottom, first match wins
-        # filename_date_rules:
-        #   - regex: "^app_log\\.(?P<date>\\d{4}-\\d{2}-\\d{2})\\.txt$"
-        #     format: "%Y-%m-%d"
+    # A job's "stages" is an ordered list of archive/relocate/delete entries.
+    # Each stage type may appear zero or more times, in any order; stages run
+    # in exactly the order written. Each entry watches its own "targets", so a
+    # later stage only sees files that its own targets/include patterns match
+    # (e.g. relocate should watch archive's known output pattern, and delete
+    # should watch relocate's destination).
+    stages:
+      # Archive (compression) stage
+      - type: archive
+        # Required. Used to name bundle archives (<name>.<target>.<period>.tar.gz)
+        name: app-server-logs-archive
+        targets:
+          - basedir: "/var/log/app"
+            include:
+              - "**/*.log"
+            exclude:
+              - "current.log"
+            # Source of the basis datetime: mtime (default) | filename_date
+            basis: mtime
+            # Only used when basis: filename_date. Rules are matched top to bottom, first match wins
+            # filename_date_rules:
+            #   - regex: "^app_log\\.(?P<date>\\d{4}-\\d{2}-\\d{2})\\.txt$"
+            #     format: "%Y-%m-%d"
+        after_days: 7
+        # gzip | zip | tar.gz
+        format: gzip
+        # none (single-file compression) | daily | weekly | monthly (bundle compression)
+        bundle: none
+        # bundle_timezone: "Asia/Tokyo"  # defaults to the local timezone
+        keep_original: false
+        # Only used when bundle is daily/weekly/monthly: warn | error
+        on_stale_bundle_member: warn
 
-    # Archive (compression) stage
-    archive:
-      enabled: true
-      after_days: 7
-      # gzip | zip | tar.gz
-      format: gzip
-      # none (single-file compression) | daily | weekly | monthly (bundle compression)
-      bundle: none
-      # bundle_timezone: "Asia/Tokyo"  # defaults to the local timezone
-      keep_original: false
-      # Only used when bundle is daily/weekly/monthly: warn | error
-      on_stale_bundle_member: warn
+      # Relocate (move to storage) stage. Watches archive's output above (*.gz)
+      - type: relocate
+        targets:
+          - basedir: "/var/log/app"
+            include:
+              - "**/*.gz"
+        after_days: 30
+        destination: "/mnt/storage/app-logs"
+        # preserve (keep the path relative to basedir) | year_month (YYYY/MM classification)
+        layout: preserve
+        # rename (append a sequence number) | skip | error
+        on_conflict: rename
 
-    # Relocate (move to storage) stage
-    relocate:
-      enabled: true
-      after_days: 30
-      destination: "/mnt/storage/app-logs"
-      # preserve (keep the path relative to basedir) | year_month (YYYY/MM classification)
-      layout: preserve
-      # rename (append a sequence number) | skip | error
-      on_conflict: rename
-
-    # Delete stage
-    delete:
-      enabled: true
-      after_days: 365
-      safety_brake:
-        enforce: true
-        count_threshold: 1000
-        size_threshold_gb: 50
+      # Delete stage. Watches relocate's destination above
+      - type: delete
+        targets:
+          - basedir: "/mnt/storage/app-logs"
+            include:
+              - "**/*"
+        after_days: 365
+        safety_brake:
+          enforce: true
+          count_threshold: 1000
+          size_threshold_gb: 50

@@ -9,54 +9,65 @@
 #   3. neatnik run --config <このファイル>
 #
 # jobs には複数のジョブを列挙できます(下に "- name: ..." を追加)。
-# 各ジョブの archive.after_days(N1) <= relocate.after_days(N2) <= delete.after_days(N3)
-# である必要があります(有効なステージ同士でのみ比較。等号も許容)。
+# 各ジョブはロックスコープ(同時に1実行のみ)としてstagesをまとめます。
 
 jobs:
   - name: app-server-logs
 
-    # 監視対象(basedir + include/exclude のパターン)。1ジョブに複数指定可
-    targets:
-      - basedir: "/var/log/app"
-        include:
-          - "**/*.log"
-        exclude:
-          - "current.log"
-        # 基準日時の情報源: mtime(既定) | ctime | filename_date
-        basis: mtime
-        # basis: filename_date の場合のみ使用。上から順に照合し最初にマッチしたものを採用する
-        # filename_date_rules:
-        #   - regex: "^app_log\\.(?P<date>\\d{4}-\\d{2}-\\d{2})\\.txt$"
-        #     format: "%Y-%m-%d"
+    # stagesは、archive/relocate/deleteエントリを並べた順序付きリストです。
+    # 各ステージ種別は0回以上(複数可)・任意の順序で書けますが、書かれた順序どおりに
+    # 実行されます。各エントリは自身の"targets"を個別に監視するため、後続のステージは
+    # 自身のtargets/includeパターンにマッチしたファイルしか見つけられません
+    # (例: relocateはarchiveの既知の出力パターンを、deleteはrelocateのdestinationを
+    # それぞれ監視対象にするとよいでしょう)。
+    stages:
+      # アーカイブ(圧縮)段階
+      - type: archive
+        # 必須。バンドルアーカイブの命名に使う(<name>.<ターゲット名>.<期間キー>.tar.gz)
+        name: app-server-logs-archive
+        targets:
+          - basedir: "/var/log/app"
+            include:
+              - "**/*.log"
+            exclude:
+              - "current.log"
+            # 基準日時の情報源: mtime(既定) | filename_date
+            basis: mtime
+            # basis: filename_date の場合のみ使用。上から順に照合し最初にマッチしたものを採用する
+            # filename_date_rules:
+            #   - regex: "^app_log\\.(?P<date>\\d{4}-\\d{2}-\\d{2})\\.txt$"
+            #     format: "%Y-%m-%d"
+        after_days: 7
+        # gzip | zip | tar.gz
+        format: gzip
+        # none(単体ファイル圧縮) | daily | weekly | monthly(バンドル圧縮)
+        bundle: none
+        # bundle_timezone: "Asia/Tokyo"  # 省略時はローカルタイムゾーン
+        keep_original: false
+        # bundleがdaily/weekly/monthlyの場合のみ使用: warn | error
+        on_stale_bundle_member: warn
 
-    # アーカイブ(圧縮)段階
-    archive:
-      enabled: true
-      after_days: 7
-      # gzip | zip | tar.gz
-      format: gzip
-      # none(単体ファイル圧縮) | daily | weekly | monthly(バンドル圧縮)
-      bundle: none
-      # bundle_timezone: "Asia/Tokyo"  # 省略時はローカルタイムゾーン
-      keep_original: false
-      # bundleがdaily/weekly/monthlyの場合のみ使用: warn | error
-      on_stale_bundle_member: warn
+      # 退避(保管フォルダへの移動)段階。上のarchiveの出力(*.gz)を監視対象にする
+      - type: relocate
+        targets:
+          - basedir: "/var/log/app"
+            include:
+              - "**/*.gz"
+        after_days: 30
+        destination: "/mnt/storage/app-logs"
+        # preserve(basedir相対パスを保持) | year_month(YYYY/MM分類)
+        layout: preserve
+        # rename(連番付与) | skip | error
+        on_conflict: rename
 
-    # 退避(保管フォルダへの移動)段階
-    relocate:
-      enabled: true
-      after_days: 30
-      destination: "/mnt/storage/app-logs"
-      # preserve(basedir相対パスを保持) | year_month(YYYY/MM分類)
-      layout: preserve
-      # rename(連番付与) | skip | error
-      on_conflict: rename
-
-    # 削除段階
-    delete:
-      enabled: true
-      after_days: 365
-      safety_brake:
-        enforce: true
-        count_threshold: 1000
-        size_threshold_gb: 50
+      # 削除段階。上のrelocateのdestinationを監視対象にする
+      - type: delete
+        targets:
+          - basedir: "/mnt/storage/app-logs"
+            include:
+              - "**/*"
+        after_days: 365
+        safety_brake:
+          enforce: true
+          count_threshold: 1000
+          size_threshold_gb: 50

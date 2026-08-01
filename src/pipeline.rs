@@ -22,7 +22,9 @@ use chrono::{DateTime, Utc};
 
 use crate::archive;
 use crate::clock::Clock;
-use crate::config::{ArchiveConfig, BundleKind, DeleteConfig, JobConfig, RelocateConfig, StageConfig, WatchTarget};
+use crate::config::{
+    ArchiveConfig, BundleKind, DeleteConfig, JobConfig, RelocateConfig, StageConfig, WatchTarget,
+};
 use crate::delete;
 use crate::error::NeatnikError;
 use crate::lock::JobLock;
@@ -91,7 +93,12 @@ pub fn run_all<L: JobLock>(
     dry_run: bool,
 ) -> Vec<(String, Result<Option<JobSummary>, NeatnikError>)> {
     jobs.iter()
-        .map(|job| (job.name.clone(), run_job(job, clock, detector, lock, dry_run)))
+        .map(|job| {
+            (
+                job.name.clone(),
+                run_job(job, clock, detector, lock, dry_run),
+            )
+        })
         .collect()
 }
 
@@ -111,13 +118,34 @@ fn run_job_locked(
     for stage in &job.stages {
         match stage {
             StageConfig::Archive(archive_config) => {
-                run_archive_entry(&job.name, archive_config, now, dry_run, detector, &mut summary)?;
+                run_archive_entry(
+                    &job.name,
+                    archive_config,
+                    now,
+                    dry_run,
+                    detector,
+                    &mut summary,
+                )?;
             }
             StageConfig::Relocate(relocate_config) => {
-                run_relocate_entry(&job.name, relocate_config, now, dry_run, detector, &mut summary)?;
+                run_relocate_entry(
+                    &job.name,
+                    relocate_config,
+                    now,
+                    dry_run,
+                    detector,
+                    &mut summary,
+                )?;
             }
             StageConfig::Delete(delete_config) => {
-                run_delete_entry(&job.name, delete_config, now, dry_run, detector, &mut summary)?;
+                run_delete_entry(
+                    &job.name,
+                    delete_config,
+                    now,
+                    dry_run,
+                    detector,
+                    &mut summary,
+                )?;
             }
         }
     }
@@ -209,7 +237,11 @@ fn run_archive_entry(
     Ok(())
 }
 
-fn run_single_file_archive(eligible: Vec<FileCandidate>, archive_config: &ArchiveConfig, summary: &mut JobSummary) {
+fn run_single_file_archive(
+    eligible: Vec<FileCandidate>,
+    archive_config: &ArchiveConfig,
+    summary: &mut JobSummary,
+) {
     for candidate in eligible {
         match archive::run_single_file(&candidate, archive_config) {
             Ok(_) => {
@@ -235,14 +267,20 @@ fn run_bundle_archive(
     summary: &mut JobSummary,
 ) -> Result<(), NeatnikError> {
     let groups = archive::run_bundle(&archive_config.name, target_ref, &eligible, archive_config)?;
-    let by_path: HashMap<PathBuf, FileCandidate> = eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
+    let by_path: HashMap<PathBuf, FileCandidate> =
+        eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
 
     for group in groups {
         match group.outcome {
             Ok(bundle) => {
-                let included: Vec<&FileCandidate> = bundle.included.iter().filter_map(|path| by_path.get(path)).collect();
+                let included: Vec<&FileCandidate> = bundle
+                    .included
+                    .iter()
+                    .filter_map(|path| by_path.get(path))
+                    .collect();
                 if !included.is_empty() {
-                    let total_bytes: u64 = included.iter().map(|candidate| candidate.size_bytes).sum();
+                    let total_bytes: u64 =
+                        included.iter().map(|candidate| candidate.size_bytes).sum();
                     summary.archived_count += included.len() as u64;
                     summary.archived_bytes += total_bytes;
                 }
@@ -279,7 +317,13 @@ fn run_relocate_entry(
     detector: &dyn WriteGuardDetector,
     summary: &mut JobSummary,
 ) -> Result<(), NeatnikError> {
-    let candidates = scan_targets(job_name, &relocate_config.targets, detector, StageKind::Relocate, summary)?;
+    let candidates = scan_targets(
+        job_name,
+        &relocate_config.targets,
+        detector,
+        StageKind::Relocate,
+        summary,
+    )?;
 
     for candidate in candidates {
         if elapsed_days(now, candidate.basis_datetime) < relocate_config.after_days as i64 {
@@ -336,7 +380,13 @@ fn run_delete_entry(
     detector: &dyn WriteGuardDetector,
     summary: &mut JobSummary,
 ) -> Result<(), NeatnikError> {
-    let candidates = scan_targets(job_name, &delete_config.targets, detector, StageKind::Delete, summary)?;
+    let candidates = scan_targets(
+        job_name,
+        &delete_config.targets,
+        detector,
+        StageKind::Delete,
+        summary,
+    )?;
 
     let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) = candidates
         .into_iter()
@@ -356,7 +406,8 @@ fn run_delete_entry(
     }
 
     let report = delete::run(&eligible, &delete_config.safety_brake, dry_run);
-    summary.safety_brake_triggered |= report.evaluation.triggered && delete_config.safety_brake.enforce;
+    summary.safety_brake_triggered |=
+        report.evaluation.triggered && delete_config.safety_brake.enforce;
 
     for (result, candidate) in report.results.into_iter().zip(eligible.iter()) {
         match result.outcome {
@@ -436,7 +487,11 @@ mod tests {
         })
     }
 
-    fn relocate_stage(basedir: &std::path::Path, after_days: u32, destination: PathBuf) -> StageConfig {
+    fn relocate_stage(
+        basedir: &std::path::Path,
+        after_days: u32,
+        destination: PathBuf,
+    ) -> StageConfig {
         StageConfig::Relocate(RelocateConfig {
             targets: vec![target(basedir, "*.gz")],
             after_days,
@@ -474,7 +529,9 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 1);
         assert_eq!(summary.relocated_count, 1);
@@ -505,14 +562,17 @@ mod tests {
         };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
         assert!(summary
             .skipped
             .iter()
-            .any(|outcome| outcome.stage == StageKind::Archive && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
+            .any(|outcome| outcome.stage == StageKind::Archive
+                && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
     }
 
     #[test]
@@ -528,7 +588,9 @@ mod tests {
         };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
@@ -553,7 +615,9 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, true).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, true)
+            .unwrap()
+            .unwrap();
 
         // dry-runは各エントリが「現時点でディスク上に存在するもの」だけを独立に報告する。
         // archiveの出力はdry-runでは実際には作られないため、relocate/delete(archiveの出力
@@ -611,7 +675,9 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.deleted_count, 0);
         assert!(summary.safety_brake_triggered);
@@ -647,10 +713,15 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 2);
-        assert_eq!(summary.relocated_count, 1, "the bundle should be relocated as a single unit");
+        assert_eq!(
+            summary.relocated_count, 1,
+            "the bundle should be relocated as a single unit"
+        );
         assert!(!file_a.exists());
         assert!(!file_b.exists());
     }
@@ -713,6 +784,9 @@ mod tests {
         let summary2 = run_job(&delete_job, &clock, &NeverInUse, &lock2, false)
             .unwrap()
             .unwrap();
-        assert_eq!(summary2.deleted_count, 1, "delete should independently discover the relocated file");
+        assert_eq!(
+            summary2.deleted_count, 1,
+            "delete should independently discover the relocated file"
+        );
     }
 }

@@ -232,9 +232,21 @@ fn cmd_list(opts: ConfigOpts, locale: Locale) -> anyhow::Result<()> {
         return Ok(());
     }
     for job in &config.jobs {
-        let archive_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Archive(_))).count();
-        let relocate_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Relocate(_))).count();
-        let delete_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Delete(_))).count();
+        let archive_count = job
+            .stages
+            .iter()
+            .filter(|s| matches!(s, StageConfig::Archive(_)))
+            .count();
+        let relocate_count = job
+            .stages
+            .iter()
+            .filter(|s| matches!(s, StageConfig::Relocate(_)))
+            .count();
+        let delete_count = job
+            .stages
+            .iter()
+            .filter(|s| matches!(s, StageConfig::Delete(_)))
+            .count();
         println!(
             "{} (archive: {archive_count}, relocate: {relocate_count}, delete: {delete_count})",
             job.name
