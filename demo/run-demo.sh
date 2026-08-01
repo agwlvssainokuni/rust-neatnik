@@ -13,15 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# neatnikのハウスキーピング(アーカイブ→退避→削除のカスケード処理)を
-# 実際に動かして確認するデモスクリプト。
+# neatnikのハウスキーピング(圧縮・アーカイブ→退避→削除)を実際に動かして確認する
+# デモスクリプト。
 #
-# 経過日数の異なる4つのログファイルを用意し、
-#   1. neatnik validate
-#   2. neatnik run --dry-run
-#   3. neatnik run
-# を順に実行して、猶予日数(archive:7日 / relocate:30日 / delete:365日)に応じて
-# ファイルがどう変化するかを示す。
+# このデモが示すこと:
+#   - 単体ファイル圧縮(bundle: none)とバンドル圧縮(bundle: daily)の両方をサポートする
+#   - 1回の`neatnik run`で最後まで一気に処理するのではなく、`neatnik`コマンドを
+#     複数回に分けて実行し、「通常 → 圧縮・アーカイブ → 退避 → 削除」と段階を踏んで
+#     ファイルの状態が変わっていく様子を示す
+#
+# ステージ間で`targets`を共有しない設計(README参照)のため、各ステージは自身の
+# targets/includeで前段の出力を監視する。`--now`でシステム時計を変更せずに未来日時を
+# エミュレートし、経過日数の閾値(archive: 7日 / relocate: 30日 / delete: 365日)を
+# 1ステップずつ超えさせることで、同一実行内でのカスケードを起こさずに段階を分離する。
 #
 # 生成物はすべて demo/workspace/ 配下(このプロジェクトディレクトリ内)に作られる。
 # .gitignore対象であり、再実行のたびにリセットされる。
@@ -31,17 +35,33 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WORKSPACE="$SCRIPT_DIR/workspace"
-LOGS_DIR="$WORKSPACE/logs"
+SINGLE_DIR="$WORKSPACE/logs/single"
+BUNDLE_DIR="$WORKSPACE/logs/bundle"
 STORAGE_DIR="$WORKSPACE/storage"
 CONFIG_PATH="$WORKSPACE/config.yaml"
 
-# BSD(macOS)/GNU(Linux)双方のdateコマンドに対応する
+ARCHIVE_AFTER_DAYS=7
+RELOCATE_AFTER_DAYS=30
+DELETE_AFTER_DAYS=365
+INITIAL_AGE_DAYS=10 # archive閾値(7日)は超えるが、relocate閾値(30日)は超えない初期経過日数
+
+# BSD(macOS)/GNU(Linux)双方のdateコマンドに対応する(過去方向、touch -t用: YYYYMMDDHHMM)
 days_ago() {
     local days="$1"
     if date -v-1d >/dev/null 2>&1; then
         date -v-"${days}"d +%Y%m%d%H%M
     else
         date -d "-${days} days" +%Y%m%d%H%M
+    fi
+}
+
+# BSD(macOS)/GNU(Linux)双方のdateコマンドに対応する(未来方向、--now用: RFC3339)
+days_ahead_rfc3339() {
+    local days="$1"
+    if date -v-1d >/dev/null 2>&1; then
+        date -v+"${days}"d -u +%Y-%m-%dT%H:%M:%SZ
+    else
+        date -d "+${days} days" -u +%Y-%m-%dT%H:%M:%SZ
     fi
 }
 
@@ -58,74 +78,104 @@ NEATNIK="$REPO_ROOT/target/release/neatnik"
 
 section "デモ用ワークスペースを初期化します: $WORKSPACE"
 rm -rf "$WORKSPACE"
-mkdir -p "$LOGS_DIR" "$STORAGE_DIR"
+mkdir -p "$SINGLE_DIR" "$BUNDLE_DIR" "$STORAGE_DIR"
 
-echo "recent activity"      > "$LOGS_DIR/app-recent.log"
-echo "will be archived"     > "$LOGS_DIR/app-archive-only.log"
-echo "will be relocated"    > "$LOGS_DIR/app-relocate.log"
-echo "will be fully purged" > "$LOGS_DIR/app-old.log"
+# 単体ファイル圧縮(bundle: none)の対象
+echo "single file archive demo" > "$SINGLE_DIR/app-access.log"
 
-# mtimeを意図的にずらし、猶予日数に対する各ファイルの立ち位置を作る
-touch -t "$(days_ago 2)"   "$LOGS_DIR/app-recent.log"
-touch -t "$(days_ago 10)"  "$LOGS_DIR/app-archive-only.log"
-touch -t "$(days_ago 40)"  "$LOGS_DIR/app-relocate.log"
-touch -t "$(days_ago 400)" "$LOGS_DIR/app-old.log"
+# バンドル圧縮(bundle: daily)の対象。同じ日に属する複数ファイルを1つのtar.gzにまとめる
+echo "worker 1 output" > "$BUNDLE_DIR/worker-1.log"
+echo "worker 2 output" > "$BUNDLE_DIR/worker-2.log"
+echo "worker 3 output" > "$BUNDLE_DIR/worker-3.log"
+
+# 全ファイルのmtimeを「archive閾値は超えるがrelocate閾値は超えない」経過日数に揃える
+MTIME="$(days_ago "$INITIAL_AGE_DAYS")"
+touch -t "$MTIME" \
+    "$SINGLE_DIR/app-access.log" \
+    "$BUNDLE_DIR/worker-1.log" \
+    "$BUNDLE_DIR/worker-2.log" \
+    "$BUNDLE_DIR/worker-3.log"
 
 cat > "$CONFIG_PATH" <<EOF
 jobs:
   - name: demo-job
     stages:
+      # 単体ファイル圧縮(bundle: none): ファイル1件ごとに<元ファイル名>.<日時>.gzを作る
       - type: archive
-        name: demo-job-archive
+        name: demo-job-archive-single
         targets:
-          - basedir: "$LOGS_DIR"
+          - basedir: "$SINGLE_DIR"
             include: ["*.log"]
-        after_days: 7
+        after_days: $ARCHIVE_AFTER_DAYS
         format: gzip
         bundle: none
-        keep_original: false
+      # バンドル圧縮(bundle: daily): 同じ日のファイルをまとめて1つのtar.gzにする
+      - type: archive
+        name: demo-job-archive-bundle
+        targets:
+          - basedir: "$BUNDLE_DIR"
+            name: workers
+            include: ["*.log"]
+        after_days: $ARCHIVE_AFTER_DAYS
+        format: gzip
+        bundle: daily
+      # 退避: 上のarchiveの出力(*.gz、*.tar.gz)をそれぞれ監視対象にする
       - type: relocate
         targets:
-          - basedir: "$LOGS_DIR"
+          - basedir: "$SINGLE_DIR"
             include: ["*.gz"]
-        after_days: 30
+          - basedir: "$BUNDLE_DIR"
+            include: ["*.tar.gz"]
+        after_days: $RELOCATE_AFTER_DAYS
         destination: "$STORAGE_DIR"
         layout: preserve
         on_conflict: rename
+      # 削除: 上のrelocateのdestinationを監視対象にする
       - type: delete
         targets:
           - basedir: "$STORAGE_DIR"
             include: ["**/*"]
-        after_days: 365
+        after_days: $DELETE_AFTER_DAYS
 EOF
 
-section "logs/ の初期状態(mtime = 経過日数)"
-ls -l "$LOGS_DIR"
+show_state() {
+    echo "-- logs/single --"
+    ls -l "$SINGLE_DIR" 2>/dev/null || echo "(空)"
+    echo "-- logs/bundle --"
+    ls -l "$BUNDLE_DIR" 2>/dev/null || echo "(空)"
+    echo "-- storage --"
+    find "$STORAGE_DIR" -type f -exec ls -l {} \; 2>/dev/null
+    [ -n "$(find "$STORAGE_DIR" -type f 2>/dev/null)" ] || echo "(空)"
+}
 
-section "neatnik validate"
+section "ステージ0: 通常(初期状態、経過${INITIAL_AGE_DAYS}日)"
+show_state
+
+section "neatnik validate(設定ファイルの検証。ファイルには一切触れない)"
 "$NEATNIK" validate --config "$CONFIG_PATH"
 
-section "neatnik run --dry-run (何も変更しない事前確認)"
-"$NEATNIK" run --config "$CONFIG_PATH" --dry-run
-
-section "dry-run後もlogs/は無変更"
-ls -l "$LOGS_DIR"
-
-section "neatnik run (実行)"
+section "ステージ1: 圧縮・アーカイブ(neatnik run、経過${INITIAL_AGE_DAYS}日 >= archive閾値${ARCHIVE_AFTER_DAYS}日)"
 "$NEATNIK" run --config "$CONFIG_PATH"
+show_state
 
-section "logs/ の実行後の状態"
-ls -l "$LOGS_DIR"
+RELOCATE_NOW="$(days_ahead_rfc3339 25)"
+section "ステージ2: 退避(neatnik run --now ${RELOCATE_NOW}、経過$((INITIAL_AGE_DAYS + 25))日 >= relocate閾値${RELOCATE_AFTER_DAYS}日)"
+"$NEATNIK" run --config "$CONFIG_PATH" --now "$RELOCATE_NOW"
+show_state
 
-section "storage/ の実行後の状態(退避されたアーカイブ)"
-find "$STORAGE_DIR" -type f -exec ls -l {} \;
+DELETE_NOW="$(days_ahead_rfc3339 370)"
+section "ステージ3: 削除(neatnik run --now ${DELETE_NOW}、経過$((INITIAL_AGE_DAYS + 370))日 >= delete閾値${DELETE_AFTER_DAYS}日)"
+"$NEATNIK" run --config "$CONFIG_PATH" --now "$DELETE_NOW"
+show_state
 
 section "まとめ"
-cat <<'SUMMARY'
-- app-recent.log        (2日経過)  : 猶予日数(7日)未満のため無変更
-- app-archive-only.log (10日経過)  : アーカイブ(圧縮)のみ実行、まだ退避猶予(30日)未満
-- app-relocate.log     (40日経過)  : アーカイブ→退避まで同一実行内でカスケード処理
-- app-old.log         (400日経過)  : アーカイブ→退避→削除まで同一実行内で完走(跡形なし)
+cat <<SUMMARY
+- app-access.log        : 単体ファイル圧縮(bundle: none)で個別に.gz化 -> 退避 -> 削除
+- worker-1/2/3.log      : バンドル圧縮(bundle: daily)で1つの.tar.gzにまとめて圧縮 -> 退避 -> 削除
+
+各ステージは同一実行内でカスケードさせず、archive・relocate・deleteを
+別々の\`neatnik run\`呼び出し(2回目以降は\`--now\`で経過日数を進める)として
+実行することで、段階的に状態が変わっていく様子を示した。
 
 再実行する場合はこのスクリプトを再度実行してください(workspace/は毎回リセットされます)。
 SUMMARY

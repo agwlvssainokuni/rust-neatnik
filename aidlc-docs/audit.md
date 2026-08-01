@@ -678,3 +678,11 @@
 **Context**: CONSTRUCTION PHASE - Build and Testステージ完了後、v0.2.0リリース実施。
 
 ---
+
+## demo/run-demo.sh見直し
+**Timestamp**: 2026-08-02T09:10:00Z
+**User Input**: "デモの内容を見直して欲しい。単一ファイルとバンドルの両方をサポート。一回の実行で最後まで進めるのではなく、段階を踏んで、通常=>圧縮・アーカイブ=>退避=>削除 と進むのがわかるように。neatnikコマンドを複数回に分けて実行。"
+**AI Response**: `demo/run-demo.sh`を全面的に書き直した。単体ファイル圧縮(`bundle: none`、`logs/single/app-access.log`)とバンドル圧縮(`bundle: daily`、`logs/bundle/worker-{1,2,3}.log`をターゲットname `workers`で1つの`.tar.gz`にまとめる)の両方を1つのジョブ内に並べて実演する構成にした。カスケードを避けるため、全ファイルの初期経過日数をarchive閾値(7日)は超えるがrelocate閾値(30日)は超えない10日に設定し、`neatnik run`を「通常(初期状態、実行なし)→圧縮・アーカイブ(`neatnik run`、実時刻)→退避(`neatnik run --now <+25日相当>`)→削除(`neatnik run --now <+370日相当>`)」の3回に分けて実行することで、各ステージの状態変化を個別に確認できるようにした。archive/relocateがBR-9でmtimeを引き継ぐ仕様を利用し、`--now`だけで経過日数の閾値を段階的に超えさせている。実行検証時、Bash変数展開の直後に全角句読点(「、」)が続く箇所(`$RELOCATE_NOW、経過...`)でbashの`set -u`が「unbound variable」エラーを起こす問題を発見し、`${RELOCATE_NOW}`のように明示的に波括弧で囲む形に修正して解消した。スクリプトを実際に実行し、ステージ0〜3の状態遷移(単体ファイル・バンドルとも圧縮→退避→削除まで完走)を確認済み。
+**Context**: CONSTRUCTION PHASE - Build and Test完了後の補助ドキュメント(デモスクリプト)改修。
+
+---
