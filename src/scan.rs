@@ -100,10 +100,10 @@ mod windows_impl {
     use std::path::Path;
 
     use windows_sys::Win32::Foundation::{
-        CloseHandle, GetLastError, ERROR_SHARING_VIOLATION, INVALID_HANDLE_VALUE,
+        CloseHandle, GetLastError, ERROR_SHARING_VIOLATION, GENERIC_READ, INVALID_HANDLE_VALUE,
     };
     use windows_sys::Win32::Storage::FileSystem::{
-        CreateFileW, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, OPEN_EXISTING,
+        CreateFileW, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
     };
 
     use super::WriteGuardDetector;

@@ -519,3 +519,11 @@
 **Context**: GitHub Release対応、依存アクションのバージョン最新化完了。
 
 ---
+
+## v0.1.0タグpush・リリースワークフロー失敗の修正
+**Timestamp**: 2026-08-01T23:45:00Z
+**User Input**: "push済みです。タグpushしてリリース確認。"
+**AI Response**: `v0.1.0`タグを作成しpush、リリースワークフローが起動(run id 30703885715)。完了後の結果確認(ScheduleWakeup経由)で、check-versionと4ビルドのうち3件(Linux/macOS x86_64/macOS aarch64)は成功したが、Windowsビルドが`E0432`(`CreateFileW`/`GENERIC_READ`が`Win32::Storage::FileSystem`に見つからない)で失敗、releaseジョブはskippedであることを確認。保存済みgit認証情報でジョブログを取得して原因を特定。macOS上でWindowsターゲット(`x86_64-pc-windows-msvc`)を追加し、windows-sysのみの最小プロジェクトで`cargo check`を反復して根本原因を特定: (1) `CreateFileW`には`Win32_Security`featureが追加で必要、(2) `GENERIC_READ`は`Win32::Storage::FileSystem`ではなく`Win32::Foundation`に定義されている。`Cargo.toml`(`Win32_Security`追加)と`src/scan.rs`(import修正)を修正し、`cargo test`・`cargo clippy -D warnings`・`cargo fmt --check`で問題ないことを確認(ただしzip crateの推移的依存`lzma-sys`がmacOSからのWindowsクロスコンパイルでC見出しファイル不足のため、プロジェクト全体のWindowsターゲットでの`cargo check`はローカルでは実施不可。windows-sys単体での検証で確認済み)。
+**Context**: GitHub Release対応、Windowsビルド失敗の修正。修正後のタグ再pushはこの後実施。
+
+---
