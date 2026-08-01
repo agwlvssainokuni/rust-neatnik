@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Compare tag with Cargo.toml version
         shell: bash
@@ -50,7 +50,7 @@ jobs:
             archive_ext: zip
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust target
         run: rustup target add ${{ matrix.target }}
@@ -73,7 +73,7 @@ jobs:
           Compress-Archive -Path "target/${{ matrix.target }}/release/neatnik.exe" -DestinationPath "neatnik-${{ matrix.target }}.zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: neatnik-${{ matrix.target }}
           path: neatnik-${{ matrix.target }}.${{ matrix.archive_ext }}
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -97,7 +97,7 @@ jobs:
           find artifacts -type f -exec mv {} release-assets/ \;
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: release-assets/*

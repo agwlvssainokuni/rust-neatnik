@@ -511,3 +511,11 @@
 **Context**: GitHub Release対応(`.github/workflows/release.yml`)完了。
 
 ---
+
+## GitHub Actionsバージョンを最新化
+**Timestamp**: 2026-08-01T23:27:00Z
+**User Input**: "actionsのバージョンは最新を使ってね。"
+**AI Response**: WebFetchでGitHub APIの各アクションリポジトリのタグ一覧を確認し、`actions/checkout`を`v4`→`v7`、`actions/upload-artifact`を`v4`→`v7`、`actions/download-artifact`を`v4`→`v8`、`softprops/action-gh-release`を`v2`→`v3`に更新。各バージョンのaction.yml定義を直接取得し、使用しているパラメータ名(name/path/if-no-files-found、tag_name/files/generate_release_notes等)が存在することを確認済み(IDEの静的解析警告は新しいメジャーバージョンのスキーマキャッシュ未更新による誤検知と判断)。
+**Context**: GitHub Release対応、依存アクションのバージョン最新化完了。
+
+---
