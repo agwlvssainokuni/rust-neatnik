@@ -125,7 +125,10 @@ pub fn run_single_file(candidate: &FileCandidate, config: &ArchiveConfig) -> Res
         path: destination.clone(),
         source,
     })?;
-    set_mtime(&destination, candidate.basis_datetime)?;
+    set_mtime(&destination, candidate.basis_datetime).map_err(|source| ArchiveError::Create {
+        path: destination.clone(),
+        source,
+    })?;
 
     if !config.keep_original {
         fs::remove_file(&candidate.path).map_err(|source| ArchiveError::Create {
@@ -247,7 +250,10 @@ fn run_bundle_group(
         .map(|member| member.basis_datetime)
         .max()
         .unwrap_or_else(Utc::now);
-    set_mtime(&bundle_path, max_basis)?;
+    set_mtime(&bundle_path, max_basis).map_err(|source| ArchiveError::Create {
+        path: bundle_path.clone(),
+        source,
+    })?;
 
     if !config.keep_original {
         for member in members {
@@ -274,12 +280,10 @@ fn temp_path_for(destination: &Path) -> PathBuf {
     destination.with_file_name(format!(".{file_name}.tmp"))
 }
 
-fn set_mtime(path: &Path, datetime: DateTime<Utc>) -> Result<(), ArchiveError> {
+/// 任意のファイルのmtimeを設定する(BR-9/BR-11で共通に使う)。relocateモジュールからも再利用する
+pub(crate) fn set_mtime(path: &Path, datetime: DateTime<Utc>) -> std::io::Result<()> {
     let file_time = FileTime::from_system_time(SystemTime::from(datetime));
-    filetime::set_file_mtime(path, file_time).map_err(|source| ArchiveError::Create {
-        path: path.to_path_buf(),
-        source,
-    })
+    filetime::set_file_mtime(path, file_time)
 }
 
 fn io_err<E: std::fmt::Display>(err: E) -> std::io::Error {

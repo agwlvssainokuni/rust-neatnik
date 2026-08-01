@@ -350,3 +350,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 6(archive モジュール)完了。tech-stack-decisions.mdへの依存クレート追加を伴う。
 
 ---
+
+## Code Generation Part 2 - Step 7完了
+**Timestamp**: 2026-08-01T19:26:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/relocate.rs`に`run()`(コピー→mtime設定→元ファイル削除)を実装。`compute_destination`でレイアウト計算(Preserve: basedir相対パス保持、YearMonth: 基準日時のYYYY/MM)、`resolve_conflict`でBR-12(`on_conflict`: rename/skip/error、renameは`_1`,`_2`...で連番付与)を実装。mtime設定はarchiveモジュールの`set_mtime`を`pub(crate)`化して再利用。単体テスト10件(パーミッション保持のUnix専用テストを含む)+proptest1件(BR-11のmtime一致Invariant)を追加し、`cargo test --lib`(51件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 7(relocate モジュール)完了。
+
+---

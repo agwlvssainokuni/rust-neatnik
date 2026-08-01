@@ -50,9 +50,9 @@
 - [x] 単体テスト + プロパティテスト(`ArchiveNamer`/`BundleKey`の決定性、PBT-02/03/07/08)
 
 ### Step 7: relocate モジュール
-- [ ] コピー処理(mtime/パーミッション保持、BR-11)
-- [ ] 衝突解決(`on_conflict`、BR-12)
-- [ ] 単体テスト
+- [x] コピー処理(mtime/パーミッション保持、BR-11)
+- [x] 衝突解決(`on_conflict`、BR-12)
+- [x] 単体テスト
 
 ### Step 8: delete モジュール
 - [ ] 削除実行、`SafetyBrakeConfig`の閾値判定(BR-13)
