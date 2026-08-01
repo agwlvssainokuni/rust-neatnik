@@ -139,6 +139,7 @@ neatnik validate --config config.yaml
 
 ### NFR-4. 実行方式
 - 単一バイナリのCLIとして単発実行可能、かつcron/systemd timer等から定期実行可能
+- **外部コマンドへの非依存**: 圧縮・アーカイブ処理(gzip/zip/tar.gz)を含め、実行時に`zip`/`tar`/`gzip`等の外部コマンドを`std::process::Command`等で呼び出すことはしない。すべてPure Rust実装のクレート(`flate2`/`tar`/`zip`crate等)で完結させる。ホスト環境に外部コマンドがインストールされていることを前提としない(「単一バイナリで配布」という前提と矛盾するため)
 
 ### NFR-5. 並行実行制御
 - FR-8参照

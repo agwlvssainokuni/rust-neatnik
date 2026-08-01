@@ -93,3 +93,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、Workflow Planning承認前の要件追加検討。requirements.md更新。Workflow Planning(execution-plan.md)は影響を受けないため再承認は不要と判断。
 
 ---
+
+## Requirements Analysis - 補足: 外部コマンド非依存の明文化
+**Timestamp**: 2026-08-01T15:05:00Z
+**User Input**: "もうちょい。neatnikを実行するときに他のコマンドを前提としない、と思って良いよね？(内部でzipコマンドを呼び出したりしない)"
+**AI Response**: 確認の通りであることを回答(flate2/tar/zip crateはいずれもPure Rust実装で外部コマンドに依存しない)。ただしこれまで明示的な制約として記載していなかったため、Code Generation時の実装逸脱を防ぐ目的でNFR-4に「外部コマンドへの非依存」を明記した。
+**Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
+
+---
