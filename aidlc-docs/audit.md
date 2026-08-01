@@ -148,3 +148,10 @@
 **Context**: INCEPTION PHASE 完了 → CONSTRUCTION PHASE - Functional Design 開始。
 
 ---
+
+## Functional Design - Plan & Questions Created
+**Timestamp**: 2026-08-01T15:35:00Z
+**AI Response**: Units Generation/Application Designをスキップしているため、requirements.md・execution-plan.mdを代替コンテキストとして`neatnik-cli-functional-design-plan.md`を作成。requirements.mdで「Functional Designで検討」と明記されていた事項(全ステージ無効化時のvalidate挙動、複数ジョブの処理順序、ロックファイル配置場所、バンドルのグルーピング基準、バンドル×keep_original併用時の冪等性、複数ジョブのファイル重複)について、AI推奨案付きの質問(A1-A3, B1-B2, C1)を`aidlc-docs/construction/plans/neatnik-cli-functional-design-plan.md`に作成し回答待ち。
+**Context**: CONSTRUCTION PHASE - Functional Design Step 2-4。ユーザー回答待ち。
+
+---

@@ -1,0 +1,121 @@
+# Functional Design Plan: neatnik-cli
+
+**Note**: Units Generation / Application Designはスキップしているため、`unit-of-work.md`等は存在しない。本ユニット(`neatnik-cli`)のコンテキストは`aidlc-docs/inception/requirements/requirements.md`および`aidlc-docs/inception/plans/execution-plan.md`を代替として用いる。
+
+## Step 1: Unit Context Analysis
+- [x] requirements.md 確認(FR-1〜FR-13, NFR-1〜NFR-PBT)
+- [x] execution-plan.md 確認(単一ユニット、Functional Design実行対象)
+
+## Step 2: 設計対象(Functional Design Artifacts)
+- [ ] ドメインモデル定義(Job設定、ファイル候補、処理結果等の構造)— `domain-entities.md`
+- [ ] ビジネスルール・バリデーションロジックの詳細化 — `business-rules.md`
+- [ ] パイプライン処理アルゴリズム(スキャン→各ステージ判定→カスケード処理) — `business-logic-model.md`
+- [ ] エラーハンドリングの詳細化 — `business-logic-model.md`に統合
+- [ ] テスト可能プロパティの識別(PBT-01、Partial適用でも実施) — `business-logic-model.md`に統合
+
+## Step 3: 質問(下記の[Answer]タグに回答してください)
+
+requirements.mdで「Functional Designで検討する」と明記した事項、および設計上新たに判明した論点です。各質問にはAIの推奨案を添えています。
+
+---
+
+### Question A1: 全ステージ無効化時の`validate`挙動
+アーカイブ・退避・削除の3ステージすべてを無効化した設定(何もしないジョブ)について、`validate`コマンドはどう扱うべきですか？
+
+A) エラーとして拒否する(設定ミスの可能性が高いため実行を止める)
+
+B) 警告を出すが実行は許可する(「一時的にジョブを無効化しておきたい」という意図的な設定を尊重する)
+
+C) 特にチェックしない(無害な設定として黙って許容する)
+
+D) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: B — ジョブを削除せずに一時的に無効化しておきたいケースは実務上あり得るため、エラーで止めるより警告に留める方が実用的
+
+[Answer]:
+
+---
+
+### Question A2: `--all`実行時の複数ジョブの処理順序
+設定ファイル内の複数ジョブを`--all`で実行する場合、どう処理しますか？
+
+A) 逐次実行する(シンプル。以前提案した「rayon等の並列処理クレートは初回リリースでは導入しない」という方針に沿う)
+
+B) ジョブ単位で並列実行する(rayon等を使用)
+
+C) 将来的な並列化の拡張余地は設計上残しつつ、初回リリースの実装は逐次実行とする
+
+D) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: C — 逐次実行から始めるが、ジョブ処理関数を独立させておけば将来rayon等で並列化する余地を残せる。無理に今から並列化する必要はない
+
+[Answer]:
+
+---
+
+### Question A3: 多重起動防止ロックファイルの配置場所
+FR-8のジョブ単位ロック(fd-lock等)について、ロックファイルはどこに作成しますか？
+
+A) 設定ファイルと同じディレクトリに`.<job-name>.lock`を作成する(発見・トラブルシューティングが容易)
+
+B) OSの一時ディレクトリ(`/tmp`等)にジョブ名ベースで作成する(設定ディレクトリを汚さない)
+
+C) 設定でロックファイルの配置ディレクトリを明示的に指定できるようにする(未指定時のデフォルトは要選択)
+
+D) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: A — 設定ファイルと同じ場所に置く方が発見・デバッグしやすく、OS一時ディレクトリの自動クリーンアップによる意図しないロック消失のリスクも避けられる
+
+[Answer]:
+
+---
+
+### Question B1: アーカイブのバンドル(daily/weekly/monthly)のグルーピング基準
+FR-2のバンドル圧縮(期間単位でまとめる方式)について、グルーピングの基準は何にしますか？
+
+A) 各ファイル自身の基準日時(mtime等)の日付/週/月でグルーピングする(例: 8/1のログと8/2のログは別バンドル)
+
+B) 今回のジョブ実行日でグルーピングする(例: 今日処理された対象ファイルは実行日付の1バンドルにまとめる)
+
+C) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: A — ファイル自身の日付を基準にする方が結果が予測可能で、ジョブの実行タイミング(遅延実行やキャッチアップ実行)に依存しない。Bだと「ジョブが数日止まっていて一気に処理した」ケースで異なる日付のファイルが1バンドルに混在してしまう
+
+[Answer]:
+
+---
+
+### Question B2: バンドル圧縮 × `keep_original: true`の組み合わせ
+バンドル圧縮(複数ファイルを1アーカイブにまとめる方式)で元ファイルを削除しない(`keep_original: true`)設定にした場合、冪等性(FR-9: 存在チェックベース)が単純には成立しません(元ファイルが残るため、次回実行時に再度対象になり重複してバンドルに含まれうる)。どう扱いますか？
+
+A) バンドル圧縮時は`keep_original: true`の組み合わせを禁止する(`validate`でエラーにする)。バンドル圧縮では元ファイル削除を必須とする
+
+B) 組み合わせを許可し、一度バンドルに含めたファイルを状態管理(処理済み記録)して重複を防ぐ(実装が複雑になる)
+
+C) 組み合わせを許可するが、重複追加のリスクはユーザーの許容するトレードオフとして特に対処しない
+
+D) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: A — 冪等性設計(FR-9)をシンプルな存在チェックベースに保つため、そもそも相性の悪い組み合わせを設定バリデーションで防ぐのが最もクリーン
+
+[Answer]:
+
+---
+
+### Question C1: 複数ジョブが同一ファイルを対象にした場合の扱い
+設定ファイル内の複数ジョブのinclude/excludeパターンが重複し、同一ファイルが複数ジョブから対象にされる場合の扱いはどうしますか？
+
+A) 動作を保証しない。ジョブ間でinclude対象が重複しないようにするのは設定者の責任とする(ドキュメントに明記するのみ)
+
+B) `validate`でジョブ間のinclude/exclude重複を検出し、エラーまたは警告にする(globパターンの重複判定はやや複雑になる)
+
+C) Other (please describe after [Answer]: tag below)
+
+**AI推奨**: A — glob同士の重複判定は一般に非自明(実際にマッチするファイルを検査しないと確実な判定ができない)であり、実装コストの割に価値が低い。ドキュメントで注意喚起するに留める
+
+[Answer]:
+
+---
+
+## Step 4: 回答受領後の進め方
+全ての[Answer]に回答後、内容を分析し、矛盾や曖昧な回答(「場合による」「どちらでも」等)があれば追加の確認質問を作成します。全て解消され次第、Functional Design成果物(`business-logic-model.md`, `business-rules.md`, `domain-entities.md`)を生成します。
