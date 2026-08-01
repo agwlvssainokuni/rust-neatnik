@@ -25,9 +25,9 @@ C) 他のYAMLクレート(`serde_norway`等の後継/派生)を調査して採�
 
 D) Other (please describe after [Answer]: tag below)
 
-**AI推奨**: A — 開発が継続しているフォークを使う方が、SECURITY-10(サプライチェーン)の観点からも将来の脆弱性対応がなされやすい
+**AI推奨(訂正後)**: `serde_norway` — 当初推奨した`serde_yml`は、基盤の`libyml`に未定義動作を引き起こす問題(RUSTSEC-2025-0067)があり指摘後にアーカイブ済みであることが判明したため、推奨から除外。調査の結果、`serde_norway`(該当RUSTSEC勧告で名指しで推奨、3候補中最多の累計ダウンロード数)を採用する
 
-[Answer]:
+[Answer]: `serde_norway`を採用(C、ただし調査の結果`serde_norway`に決定)
 
 ---
 
@@ -42,7 +42,7 @@ C) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — 依存クレートは軽量で広く使われており、既に合意した「デフォルトはローカルタイムゾーン」という要件を素直に実現できる
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -59,7 +59,7 @@ D) 現時点では導入しない(Build and Testステージで別途検討す�
 
 **AI推奨**: A — 単一ツールでSECURITY-10の複数観点(脆弱性・ライセンス・サプライチェーン)をカバーでき、CI設定もシンプルになる
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -74,7 +74,7 @@ C) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — 配布バイナリはビルド時の環境に依存し、外部ライブラリとして他プロジェクトから使われる想定も薄いため、MSRV固定の運用コストに見合うメリットが小さい
 
-[Answer]:
+[Answer]: A
 
 ---
 

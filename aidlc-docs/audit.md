@@ -241,3 +241,11 @@
 **Context**: CONSTRUCTION PHASE - NFR Requirements Step 2-4。ユーザー回答待ち。
 
 ---
+
+## NFR Requirements - T1調査・全質問回答完了
+**Timestamp**: 2026-08-01T18:10:00Z
+**User Input**: "T1=C(念のためコミュニティフォークとserde_norwayの比較が欲しい), T2=A, T3=A, T4=A" → (AIの調査結果提示に対して)"serde_norwayとします。"
+**AI Response**: T1についてWebSearch/WebFetchでcrates.io・RUSTSECアドバイザリ・GitHubを調査。当初推奨していた`serde_yml`が実際には基盤ライブラリ`libyml`の未定義動作(RUSTSEC-2025-0067)によりアーカイブ済みであることが判明し、推奨を`serde_norway`に訂正。`serde_norway`(該当RUSTSEC勧告で名指し推奨、3候補中最多ダウンロード数)、`yaml_serde`(YAML Organization継続、直近まで活発)、`serde_yaml_ng`の比較表を提示し、ユーザーが`serde_norway`を選択。T2=A、T3=A、T4=A(いずれもAI推奨通り)とあわせて`neatnik-cli-nfr-requirements-plan.md`に全回答を記録。
+**Context**: CONSTRUCTION PHASE - NFR Requirements Step 4完了(全質問回答)。Step 6(成果物生成)へ進む。
+
+---
