@@ -256,7 +256,6 @@ fn resolve_basis_datetime(
 ) -> Result<DateTime<Utc>, ScanError> {
     match target.basis {
         BasisKind::Mtime => metadata_time_to_utc(metadata.modified(), path),
-        BasisKind::Ctime => ctime_to_utc(metadata, path),
         BasisKind::FilenameDate => {
             let file_name = path.file_name().and_then(|n| n.to_str()).ok_or_else(|| {
                 ScanError::NoDateRuleMatched {
@@ -281,24 +280,6 @@ fn metadata_time_to_utc(
         source,
     })?;
     Ok(DateTime::<Utc>::from(system_time))
-}
-
-#[cfg(unix)]
-fn ctime_to_utc(metadata: &fs::Metadata, path: &Path) -> Result<DateTime<Utc>, ScanError> {
-    use std::os::unix::fs::MetadataExt;
-    let seconds = metadata.ctime();
-    let nanos = metadata.ctime_nsec() as u32;
-    Utc.timestamp_opt(seconds, nanos)
-        .single()
-        .ok_or_else(|| ScanError::Metadata {
-            path: path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid ctime value"),
-        })
-}
-
-#[cfg(not(unix))]
-fn ctime_to_utc(metadata: &fs::Metadata, path: &Path) -> Result<DateTime<Utc>, ScanError> {
-    metadata_time_to_utc(metadata.created(), path)
 }
 
 /// BR-7.1: `FilenameDateRule`を上から順に照合し、最初にマッチ+パース成功したものを採用する

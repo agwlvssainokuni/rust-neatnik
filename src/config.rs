@@ -14,6 +14,7 @@
 
 //! 設定モデル(YAML)の定義・パース・バリデーション(FR-7)。
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -47,7 +48,7 @@ impl RootConfig {
         })
     }
 
-    /// 全ジョブをバリデーションし、警告(BR-2)の一覧を返す。エラー(BR-1等)があれば最初の1件を返す。
+    /// 全ジョブをバリデーションし、警告(BR-2)の一覧を返す。エラー(BR-2.1/BR-2.2等)があれば最初の1件を返す。
     pub fn validate(&self) -> Result<Vec<ValidationWarning>, ConfigError> {
         let mut warnings = Vec::new();
         for job in &self.jobs {
@@ -57,21 +58,28 @@ impl RootConfig {
     }
 }
 
-/// ジョブ単位(監視対象×ルールの組)の設定。
+/// ジョブ単位(ロックスコープ、FR-5・FR-8)の設定。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JobConfig {
     pub name: String,
-    pub targets: Vec<WatchTarget>,
+    /// archive/relocate/deleteのステージエントリを任意個・任意の順序で並べたリスト。
+    /// 書かれた順序どおりに実行する(BR-9)。`enabled`という概念は持たない
     #[serde(default)]
-    pub archive: ArchiveConfig,
-    #[serde(default)]
-    pub relocate: RelocateConfig,
-    #[serde(default)]
-    pub delete: DeleteConfig,
+    pub stages: Vec<StageConfig>,
 }
 
-/// 1つの監視対象ディレクトリとそのパターン(FR-1)。
+/// `stages`リストの1要素(archive/relocate/deleteのいずれか)。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StageConfig {
+    Archive(ArchiveConfig),
+    Relocate(RelocateConfig),
+    Delete(DeleteConfig),
+}
+
+/// 1つの監視対象ディレクトリとそのパターン(FR-1)。archive/relocate/deleteの各エントリが
+/// 自身の`targets`として個別に持つ。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WatchTarget {
@@ -134,26 +142,38 @@ pub struct FilenameDateRule {
     pub format: String,
 }
 
+/// 基準日時の情報源。`Ctime`は削除済み(2026-08-02): archive/relocateがmtime継承(BR-9)のために
+/// 出力ファイルのmtimeを明示的に設定する操作は、OS仕様上ctimeを「今」にリセットする副作用を
+/// 伴うため、一度でもarchive/relocateを経由したファイルではctime基準の経過日数計算が機能しない
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BasisKind {
     #[default]
     Mtime,
-    Ctime,
     FilenameDate,
 }
 
 /// アーカイブ段階の設定(FR-2)。
-#[derive(Debug, Clone, Default, Deserialize)]
-#[serde(deny_unknown_fields, default)]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(Default))]
+#[serde(deny_unknown_fields)]
 pub struct ArchiveConfig {
-    pub enabled: bool,
+    /// このarchiveエントリの識別子(必須)。バンドル命名(`<name>.<ターゲット名>.<期間キー>.tar.gz`)に使う
+    pub name: String,
+    #[serde(default)]
+    pub targets: Vec<WatchTarget>,
+    #[serde(default)]
     pub after_days: u32,
+    #[serde(default)]
     pub format: ArchiveFormat,
+    #[serde(default)]
     pub bundle: BundleKind,
     /// バンドル期間境界の計算に使うタイムゾーン(BR-10)。省略時はローカルタイムゾーンを使う
+    #[serde(default)]
     pub bundle_timezone: Option<String>,
+    #[serde(default)]
     pub keep_original: bool,
+    #[serde(default)]
     pub on_stale_bundle_member: OnStaleBundleMember,
 }
 
@@ -189,7 +209,7 @@ pub enum OnStaleBundleMember {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct RelocateConfig {
-    pub enabled: bool,
+    pub targets: Vec<WatchTarget>,
     pub after_days: u32,
     pub destination: Option<PathBuf>,
     pub layout: LayoutKind,
@@ -217,7 +237,7 @@ pub enum ConflictPolicy {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct DeleteConfig {
-    pub enabled: bool,
+    pub targets: Vec<WatchTarget>,
     pub after_days: u32,
     pub safety_brake: SafetyBrakeConfig,
 }
@@ -233,66 +253,84 @@ pub struct SafetyBrakeConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationWarning(pub String);
 
-/// ジョブ1件をバリデーションする(BR-1, BR-2, RelocateConfig.destination必須チェック、basedir到達可能性)。
+/// ジョブ1件をバリデーションする(BR-2: 空stages警告、BR-2.1: targets必須、
+/// BR-2.2: バンドルモードでのターゲット名重複禁止、RelocateConfig.destination必須チェック、
+/// basedir到達可能性)。
 pub fn validate_job(job: &JobConfig) -> Result<Vec<ValidationWarning>, ConfigError> {
     let mut warnings = Vec::new();
 
-    if !job.archive.enabled && !job.relocate.enabled && !job.delete.enabled {
+    if job.stages.is_empty() {
         warnings.push(ValidationWarning(format!(
-            "job \"{}\": all stages (archive/relocate/delete) are disabled",
+            "job \"{}\": has no stages configured (archive/relocate/delete)",
             job.name
         )));
     }
 
-    check_threshold_order(
-        &job.name,
-        &[
-            (
-                "archive.after_days",
-                job.archive.enabled,
-                job.archive.after_days,
-            ),
-            (
-                "relocate.after_days",
-                job.relocate.enabled,
-                job.relocate.after_days,
-            ),
-            (
-                "delete.after_days",
-                job.delete.enabled,
-                job.delete.after_days,
-            ),
-        ],
-    )?;
-
-    if job.relocate.enabled && job.relocate.destination.is_none() {
-        return Err(ConfigError::Invalid {
-            job: job.name.clone(),
-            reason: "relocate.destination is required when relocate.enabled is true".to_string(),
-        });
-    }
-
-    for target in &job.targets {
-        target.canonical_basedir(&job.name)?;
+    for stage in &job.stages {
+        match stage {
+            StageConfig::Archive(archive) => {
+                validate_targets_present(&job.name, "archive", &archive.targets)?;
+                for target in &archive.targets {
+                    target.canonical_basedir(&job.name)?;
+                }
+                if archive.bundle != BundleKind::None {
+                    validate_unique_target_names(&job.name, &archive.name, &archive.targets)?;
+                }
+            }
+            StageConfig::Relocate(relocate) => {
+                validate_targets_present(&job.name, "relocate", &relocate.targets)?;
+                for target in &relocate.targets {
+                    target.canonical_basedir(&job.name)?;
+                }
+                if relocate.destination.is_none() {
+                    return Err(ConfigError::Invalid {
+                        job: job.name.clone(),
+                        reason: "relocate.destination is required".to_string(),
+                    });
+                }
+            }
+            StageConfig::Delete(delete) => {
+                validate_targets_present(&job.name, "delete", &delete.targets)?;
+                for target in &delete.targets {
+                    target.canonical_basedir(&job.name)?;
+                }
+            }
+        }
     }
 
     Ok(warnings)
 }
 
-/// BR-1: 有効なステージ同士でのみ`N1 <= N2 <= N3`を検証する(等号は許容)。無効なステージの値は比較対象から除外する
-fn check_threshold_order(job_name: &str, stages: &[(&str, bool, u32)]) -> Result<(), ConfigError> {
-    let enabled: Vec<(&str, u32)> = stages
-        .iter()
-        .filter(|(_, enabled, _)| *enabled)
-        .map(|(name, _, days)| (*name, *days))
-        .collect();
-    for pair in enabled.windows(2) {
-        let (prev_name, prev_days) = pair[0];
-        let (next_name, next_days) = pair[1];
-        if prev_days > next_days {
+/// BR-2.1: ステージエントリの`targets`は空であってはならない
+fn validate_targets_present(
+    job_name: &str,
+    stage_kind: &str,
+    targets: &[WatchTarget],
+) -> Result<(), ConfigError> {
+    if targets.is_empty() {
+        return Err(ConfigError::Invalid {
+            job: job_name.to_string(),
+            reason: format!("{stage_kind}.targets must not be empty"),
+        });
+    }
+    Ok(())
+}
+
+/// BR-2.2: バンドルモードのarchiveエントリ内で、解決後のターゲット名が重複してはならない
+fn validate_unique_target_names(
+    job_name: &str,
+    archive_name: &str,
+    targets: &[WatchTarget],
+) -> Result<(), ConfigError> {
+    let mut seen = HashSet::new();
+    for target in targets {
+        let name = target.resolved_name();
+        if !seen.insert(name.clone()) {
             return Err(ConfigError::Invalid {
                 job: job_name.to_string(),
-                reason: format!("{prev_name} ({prev_days}) must be <= {next_name} ({next_days})"),
+                reason: format!(
+                    "archive \"{archive_name}\": duplicate target name \"{name}\" among targets (bundle mode requires unique target names, BR-2.2)"
+                ),
             });
         }
     }
@@ -347,32 +385,36 @@ fn levenshtein(a: &str, b: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proptest::prelude::*;
 
     fn sample_yaml() -> &'static str {
         r#"
 jobs:
   - name: app-server-logs
-    targets:
-      - basedir: "/var/log/app"
-        include: ["*.log"]
-        exclude: ["current.log"]
-        basis: mtime
-    archive:
-      enabled: true
-      after_days: 7
-      format: gzip
-      bundle: daily
-      keep_original: false
-    relocate:
-      enabled: true
-      after_days: 30
-      destination: "/mnt/storage/app-logs"
-      layout: year_month
-      on_conflict: rename
-    delete:
-      enabled: true
-      after_days: 365
+    stages:
+      - type: archive
+        name: app-server-logs-archive
+        targets:
+          - basedir: "/var/log/app"
+            include: ["*.log"]
+            exclude: ["current.log"]
+            basis: mtime
+        after_days: 7
+        format: gzip
+        bundle: daily
+        keep_original: false
+      - type: relocate
+        targets:
+          - basedir: "/var/log/app"
+            include: ["*.gz"]
+        after_days: 30
+        destination: "/mnt/storage/app-logs"
+        layout: year_month
+        on_conflict: rename
+      - type: delete
+        targets:
+          - basedir: "/mnt/storage/app-logs"
+            include: ["**/*"]
+        after_days: 365
 "#
     }
 
@@ -382,10 +424,27 @@ jobs:
         assert_eq!(config.jobs.len(), 1);
         let job = &config.jobs[0];
         assert_eq!(job.name, "app-server-logs");
-        assert_eq!(job.archive.format, ArchiveFormat::Gzip);
-        assert_eq!(job.archive.bundle, BundleKind::Daily);
-        assert_eq!(job.relocate.layout, LayoutKind::YearMonth);
-        assert_eq!(job.delete.after_days, 365);
+        assert_eq!(job.stages.len(), 3);
+        match &job.stages[0] {
+            StageConfig::Archive(archive) => {
+                assert_eq!(archive.name, "app-server-logs-archive");
+                assert_eq!(archive.format, ArchiveFormat::Gzip);
+                assert_eq!(archive.bundle, BundleKind::Daily);
+            }
+            other => panic!("expected Archive, got {other:?}"),
+        }
+        match &job.stages[1] {
+            StageConfig::Relocate(relocate) => {
+                assert_eq!(relocate.layout, LayoutKind::YearMonth);
+            }
+            other => panic!("expected Relocate, got {other:?}"),
+        }
+        match &job.stages[2] {
+            StageConfig::Delete(delete) => {
+                assert_eq!(delete.after_days, 365);
+            }
+            other => panic!("expected Delete, got {other:?}"),
+        }
     }
 
     #[test]
@@ -415,31 +474,91 @@ jobs:
     }
 
     #[test]
-    fn all_stages_disabled_produces_a_warning_not_an_error() {
+    fn empty_stages_produces_a_warning_not_an_error() {
         let job = JobConfig {
             name: "idle-job".to_string(),
-            targets: vec![],
-            archive: ArchiveConfig::default(),
-            relocate: RelocateConfig::default(),
-            delete: DeleteConfig::default(),
+            stages: vec![],
         };
         let warnings = validate_job(&job).unwrap();
         assert_eq!(warnings.len(), 1);
     }
 
     #[test]
-    fn relocate_enabled_without_destination_is_rejected() {
+    fn archive_entry_without_targets_is_rejected() {
         let job = JobConfig {
             name: "broken-job".to_string(),
-            targets: vec![],
-            archive: ArchiveConfig::default(),
-            relocate: RelocateConfig {
-                enabled: true,
-                ..RelocateConfig::default()
-            },
-            delete: DeleteConfig::default(),
+            stages: vec![StageConfig::Archive(ArchiveConfig {
+                name: "a".to_string(),
+                ..ArchiveConfig::default()
+            })],
         };
         assert!(validate_job(&job).is_err());
+    }
+
+    #[test]
+    fn relocate_enabled_without_destination_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let job = JobConfig {
+            name: "broken-job".to_string(),
+            stages: vec![StageConfig::Relocate(RelocateConfig {
+                targets: vec![WatchTarget {
+                    basedir: dir.path().to_path_buf(),
+                    name: None,
+                    include: vec!["*.log".to_string()],
+                    exclude: vec![],
+                    basis: BasisKind::Mtime,
+                    filename_date_rules: vec![],
+                }],
+                ..RelocateConfig::default()
+            })],
+        };
+        assert!(validate_job(&job).is_err());
+    }
+
+    #[test]
+    fn duplicate_target_names_in_bundle_archive_are_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = WatchTarget {
+            basedir: dir.path().to_path_buf(),
+            name: Some("dup".to_string()),
+            include: vec!["*.log".to_string()],
+            exclude: vec![],
+            basis: BasisKind::Mtime,
+            filename_date_rules: vec![],
+        };
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![StageConfig::Archive(ArchiveConfig {
+                name: "a".to_string(),
+                targets: vec![target.clone(), target],
+                bundle: BundleKind::Daily,
+                ..ArchiveConfig::default()
+            })],
+        };
+        assert!(validate_job(&job).is_err());
+    }
+
+    #[test]
+    fn duplicate_target_names_are_allowed_when_bundle_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = WatchTarget {
+            basedir: dir.path().to_path_buf(),
+            name: Some("dup".to_string()),
+            include: vec!["*.log".to_string()],
+            exclude: vec![],
+            basis: BasisKind::Mtime,
+            filename_date_rules: vec![],
+        };
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![StageConfig::Archive(ArchiveConfig {
+                name: "a".to_string(),
+                targets: vec![target.clone(), target],
+                bundle: BundleKind::None,
+                ..ArchiveConfig::default()
+            })],
+        };
+        assert!(validate_job(&job).is_ok());
     }
 
     #[test]
@@ -456,61 +575,14 @@ jobs:
     #[test]
     fn unknown_field_suggests_the_closest_known_field() {
         let source =
-            serde_norway::from_str::<JobConfig>("name: x\ntargets: []\narchve:\n  enabled: true\n")
-                .unwrap_err();
+            serde_norway::from_str::<ArchiveConfig>("name: x\nafetr_days: 7\n").unwrap_err();
         let err = unknown_field_error(&source);
         match err {
             Some(ConfigError::UnknownField { field, suggestion }) => {
-                assert_eq!(field, "archve");
-                assert_eq!(suggestion, "archive");
+                assert_eq!(field, "afetr_days");
+                assert_eq!(suggestion, "after_days");
             }
             other => panic!("expected UnknownField, got {other:?}"),
-        }
-    }
-
-    proptest! {
-        #[test]
-        fn disabled_stage_threshold_is_excluded_from_br1_ordering_check(
-            archive_days in 0u32..100,
-            relocate_days in 0u32..100_000,
-            delete_days in 0u32..100,
-        ) {
-            prop_assume!(archive_days <= delete_days);
-            let result = check_threshold_order(
-                "t",
-                &[
-                    ("archive.after_days", true, archive_days),
-                    ("relocate.after_days", false, relocate_days),
-                    ("delete.after_days", true, delete_days),
-                ],
-            );
-            prop_assert!(result.is_ok());
-        }
-
-        #[test]
-        fn enabled_stages_out_of_order_are_rejected(
-            a in 1u32..100,
-            b in 0u32..100,
-        ) {
-            prop_assume!(a > b);
-            let result = check_threshold_order(
-                "t",
-                &[("archive.after_days", true, a), ("relocate.after_days", true, b)],
-            );
-            prop_assert!(result.is_err());
-        }
-
-        #[test]
-        fn enabled_stages_in_order_are_accepted(
-            a in 0u32..100,
-            b in 0u32..100,
-        ) {
-            prop_assume!(a <= b);
-            let result = check_threshold_order(
-                "t",
-                &[("archive.after_days", true, a), ("relocate.after_days", true, b)],
-            );
-            prop_assert!(result.is_ok());
         }
     }
 }

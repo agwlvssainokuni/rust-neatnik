@@ -22,7 +22,7 @@ use clap_complete::{generate, Shell};
 
 use i18n::{msg, Locale};
 use neatnik::clock::{Clock, FixedClock, SystemClock};
-use neatnik::config::{JobConfig, RootConfig, ValidationWarning};
+use neatnik::config::{JobConfig, RootConfig, StageConfig, ValidationWarning};
 use neatnik::lock::FileJobLock;
 use neatnik::pipeline::{self, JobSummary};
 use neatnik::scan::platform_write_guard_detector;
@@ -232,9 +232,12 @@ fn cmd_list(opts: ConfigOpts, locale: Locale) -> anyhow::Result<()> {
         return Ok(());
     }
     for job in &config.jobs {
+        let archive_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Archive(_))).count();
+        let relocate_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Relocate(_))).count();
+        let delete_count = job.stages.iter().filter(|s| matches!(s, StageConfig::Delete(_))).count();
         println!(
-            "{} (archive: {}, relocate: {}, delete: {})",
-            job.name, job.archive.enabled, job.relocate.enabled, job.delete.enabled
+            "{} (archive: {archive_count}, relocate: {relocate_count}, delete: {delete_count})",
+            job.name
         );
     }
     Ok(())

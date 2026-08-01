@@ -34,26 +34,31 @@ fn write_job_config(path: &Path, basedir: &Path, destination: &Path) {
         r#"
 jobs:
   - name: test-job
-    targets:
-      - basedir: "{}"
-        include: ["*.log"]
-    archive:
-      enabled: true
-      after_days: 0
-      format: gzip
-      bundle: none
-    relocate:
-      enabled: true
-      after_days: 0
-      destination: "{}"
-      layout: preserve
-      on_conflict: rename
-    delete:
-      enabled: true
-      after_days: 0
+    stages:
+      - type: archive
+        name: test-job-archive
+        targets:
+          - basedir: "{basedir}"
+            include: ["*.log"]
+        after_days: 0
+        format: gzip
+        bundle: none
+      - type: relocate
+        targets:
+          - basedir: "{basedir}"
+            include: ["*.gz"]
+        after_days: 0
+        destination: "{destination}"
+        layout: preserve
+        on_conflict: rename
+      - type: delete
+        targets:
+          - basedir: "{destination}"
+            include: ["**/*"]
+        after_days: 0
 "#,
-        basedir.display(),
-        destination.display()
+        basedir = basedir.display(),
+        destination = destination.display()
     );
     fs::write(path, content).unwrap();
 }
@@ -220,6 +225,8 @@ fn run_dry_run_reports_counts_without_touching_files() {
     let config_path = source_dir.path().join("config.yaml");
     write_job_config(&config_path, source_dir.path(), dest_dir.path());
 
+    // 新設計(ステージ独立スキャン)では、dry-runはarchiveの出力を実際には作らないため、
+    // 後続のrelocate/deleteは自身のtargetsで何も発見できず0件になる(意図した挙動)
     neatnik()
         .args(["run", "--config"])
         .arg(&config_path)
@@ -227,8 +234,8 @@ fn run_dry_run_reports_counts_without_touching_files() {
         .assert()
         .success()
         .stdout(predicate::str::contains("archived 1"))
-        .stdout(predicate::str::contains("relocated 1"))
-        .stdout(predicate::str::contains("deleted 1"));
+        .stdout(predicate::str::contains("relocated 0"))
+        .stdout(predicate::str::contains("deleted 0"));
 
     assert!(
         log_file.exists(),

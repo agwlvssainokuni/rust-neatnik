@@ -252,7 +252,6 @@ mod tests {
         let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
         let candidate = make_candidate(source_dir.path(), source.clone(), basis);
         let config = RelocateConfig {
-            enabled: true,
             destination: Some(dest_dir.path().to_path_buf()),
             layout: LayoutKind::Preserve,
             on_conflict: ConflictPolicy::Rename,
@@ -289,7 +288,6 @@ mod tests {
 
         let candidate = make_candidate(source_dir.path(), source.clone(), Utc::now());
         let config = RelocateConfig {
-            enabled: true,
             destination: Some(dest_dir.path().to_path_buf()),
             layout: LayoutKind::Preserve,
             on_conflict: ConflictPolicy::Rename,
@@ -315,7 +313,6 @@ mod tests {
 
         let candidate = make_candidate(source_dir.path(), source.clone(), Utc::now());
         let config = RelocateConfig {
-            enabled: true,
             destination: Some(dest_dir.path().to_path_buf()),
             layout: LayoutKind::Preserve,
             on_conflict: ConflictPolicy::Skip,
@@ -340,7 +337,6 @@ mod tests {
             fs::write(&source, b"hello").unwrap();
             let candidate = make_candidate(source_dir.path(), source.clone(), basis);
             let config = RelocateConfig {
-                enabled: true,
                 destination: Some(dest_dir.path().to_path_buf()),
                 layout: LayoutKind::Preserve,
                 on_conflict: ConflictPolicy::Rename,

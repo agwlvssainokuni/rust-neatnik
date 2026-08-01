@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! 全体オーケストレーション。1ジョブのスキャン→カスケードパイプライン処理、複数ジョブの
-//! 逐次処理(BR-15)を実装する。
+//! 全体オーケストレーション。1ジョブの`stages`を先頭から順に1エントリずつ処理し(BR-9)、
+//! 複数ジョブの逐次処理(BR-15)を実装する。
 
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 
 use crate::archive;
 use crate::clock::Clock;
-use crate::config::{BundleKind, JobConfig};
+use crate::config::{ArchiveConfig, BundleKind, DeleteConfig, JobConfig, RelocateConfig, StageConfig, WatchTarget};
 use crate::delete;
 use crate::error::NeatnikError;
 use crate::lock::JobLock;
@@ -43,7 +42,7 @@ pub enum OutcomeStatus {
     Failed,
 }
 
-/// 1ファイル・1ステージの処理結果(スキップ・失敗のみ記録する。成功は`JobSummary`の集計値に反映する)
+/// 1ファイル・1ステージエントリの処理結果(スキップ・失敗のみ記録する。成功は`JobSummary`の集計値に反映する)
 #[derive(Debug, Clone)]
 pub struct StageOutcome {
     pub path: PathBuf,
@@ -92,15 +91,11 @@ pub fn run_all<L: JobLock>(
     dry_run: bool,
 ) -> Vec<(String, Result<Option<JobSummary>, NeatnikError>)> {
     jobs.iter()
-        .map(|job| {
-            (
-                job.name.clone(),
-                run_job(job, clock, detector, lock, dry_run),
-            )
-        })
+        .map(|job| (job.name.clone(), run_job(job, clock, detector, lock, dry_run)))
         .collect()
 }
 
+/// BR-9: `stages`を書かれた順序どおりに1エントリずつ処理する。並べ替えは行わない
 fn run_job_locked(
     job: &JobConfig,
     clock: &dyn Clock,
@@ -112,18 +107,70 @@ fn run_job_locked(
         job_name: job.name.clone(),
         ..JobSummary::default()
     };
-    let mut delete_candidates: Vec<FileCandidate> = Vec::new();
 
-    for target in &job.targets {
-        let candidates = scan::scan_target(&job.name, target, detector)?;
+    for stage in &job.stages {
+        match stage {
+            StageConfig::Archive(archive_config) => {
+                run_archive_entry(&job.name, archive_config, now, dry_run, detector, &mut summary)?;
+            }
+            StageConfig::Relocate(relocate_config) => {
+                run_relocate_entry(&job.name, relocate_config, now, dry_run, detector, &mut summary)?;
+            }
+            StageConfig::Delete(delete_config) => {
+                run_delete_entry(&job.name, delete_config, now, dry_run, detector, &mut summary)?;
+            }
+        }
+    }
+
+    Ok(summary)
+}
+
+/// 指定された`targets`をスキャンし、書き込み中のファイル(BR-7)をスキップした候補を返す
+fn scan_targets(
+    job_name: &str,
+    targets: &[WatchTarget],
+    detector: &dyn WriteGuardDetector,
+    stage: StageKind,
+    summary: &mut JobSummary,
+) -> Result<Vec<FileCandidate>, NeatnikError> {
+    let mut usable = Vec::new();
+    for target in targets {
+        let candidates = scan::scan_target(job_name, target, detector)?;
+        for candidate in candidates {
+            if candidate.in_use {
+                summary.skipped.push(StageOutcome {
+                    path: candidate.path,
+                    stage,
+                    status: OutcomeStatus::Skipped,
+                    reason: Some("file is in use (BR-7)".to_string()),
+                });
+            } else {
+                usable.push(candidate);
+            }
+        }
+    }
+    Ok(usable)
+}
+
+/// BR-8/BR-9/BR-10/BR-3: archiveエントリを実行する。ターゲット単位でスキャン・判定・圧縮する
+/// (バンドル命名(BR-8)がターゲット単位のグルーピングを前提とするため、ターゲットをまたいで
+/// 候補をまとめない)
+fn run_archive_entry(
+    job_name: &str,
+    archive_config: &ArchiveConfig,
+    now: DateTime<Utc>,
+    dry_run: bool,
+    detector: &dyn WriteGuardDetector,
+    summary: &mut JobSummary,
+) -> Result<(), NeatnikError> {
+    for target in &archive_config.targets {
         let target_ref = WatchTargetRef {
-            basedir: target.canonical_basedir(&job.name)?,
+            basedir: target.canonical_basedir(job_name)?,
             name: target.resolved_name(),
         };
+        let candidates = scan::scan_target(job_name, target, detector)?;
 
-        let (in_use, usable): (Vec<_>, Vec<_>) = candidates
-            .into_iter()
-            .partition(|candidate| candidate.in_use);
+        let (in_use, usable): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|c| c.in_use);
         for candidate in in_use {
             summary.skipped.push(StageOutcome {
                 path: candidate.path,
@@ -133,100 +180,41 @@ fn run_job_locked(
             });
         }
 
-        let post_archive = run_archive_stage(job, &target_ref, usable, now, dry_run, &mut summary)?;
+        let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) = usable
+            .into_iter()
+            .partition(|c| elapsed_days(now, c.basis_datetime) >= archive_config.after_days as i64);
 
-        for candidate in post_archive {
-            let Some(relocated) = apply_relocate(job, candidate, now, dry_run, &mut summary) else {
-                continue;
-            };
+        for candidate in &not_eligible {
+            summary.skipped.push(StageOutcome {
+                path: candidate.path.clone(),
+                stage: StageKind::Archive,
+                status: OutcomeStatus::Skipped,
+                reason: Some("archive grace period not elapsed".to_string()),
+            });
+        }
 
-            if !job.delete.enabled {
-                continue;
-            }
-            if elapsed_days(now, relocated.basis_datetime) >= job.delete.after_days as i64 {
-                delete_candidates.push(relocated);
-            } else {
-                summary.skipped.push(StageOutcome {
-                    path: relocated.path,
-                    stage: StageKind::Delete,
-                    status: OutcomeStatus::Skipped,
-                    reason: Some("delete grace period not elapsed (BR-1)".to_string()),
-                });
+        if dry_run {
+            summary.archived_count += eligible.len() as u64;
+            summary.archived_bytes += eligible.iter().map(|c| c.size_bytes).sum::<u64>();
+            continue;
+        }
+
+        match archive_config.bundle {
+            BundleKind::None => run_single_file_archive(eligible, archive_config, summary),
+            BundleKind::Daily | BundleKind::Weekly | BundleKind::Monthly => {
+                run_bundle_archive(archive_config, &target_ref, eligible, summary)?;
             }
         }
     }
-
-    if job.delete.enabled && !delete_candidates.is_empty() {
-        apply_delete(&delete_candidates, job, dry_run, &mut summary);
-    }
-
-    Ok(summary)
+    Ok(())
 }
 
-/// BR-1/BR-8/BR-9/BR-10/BR-3: 猶予期間を満たす候補を単体/バンドルで圧縮し、以降の退避・削除段へ引き継ぐ候補を返す
-fn run_archive_stage(
-    job: &JobConfig,
-    target_ref: &WatchTargetRef,
-    candidates: Vec<FileCandidate>,
-    now: DateTime<Utc>,
-    dry_run: bool,
-    summary: &mut JobSummary,
-) -> Result<Vec<FileCandidate>, NeatnikError> {
-    if !job.archive.enabled {
-        return Ok(candidates);
-    }
-
-    let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) =
-        candidates.into_iter().partition(|candidate| {
-            elapsed_days(now, candidate.basis_datetime) >= job.archive.after_days as i64
-        });
-
-    for candidate in &not_eligible {
-        summary.skipped.push(StageOutcome {
-            path: candidate.path.clone(),
-            stage: StageKind::Archive,
-            status: OutcomeStatus::Skipped,
-            reason: Some("archive grace period not elapsed (BR-1)".to_string()),
-        });
-    }
-
-    if dry_run {
-        summary.archived_count += eligible.len() as u64;
-        summary.archived_bytes += eligible
-            .iter()
-            .map(|candidate| candidate.size_bytes)
-            .sum::<u64>();
-        let mut carried = eligible;
-        carried.extend(not_eligible);
-        return Ok(carried);
-    }
-
-    let mut carried = match job.archive.bundle {
-        BundleKind::None => run_single_file_archive(job, eligible, summary),
-        BundleKind::Daily | BundleKind::Weekly | BundleKind::Monthly => {
-            run_bundle_archive(job, target_ref, eligible, summary)?
-        }
-    };
-
-    carried.extend(not_eligible);
-    Ok(carried)
-}
-
-fn run_single_file_archive(
-    job: &JobConfig,
-    eligible: Vec<FileCandidate>,
-    summary: &mut JobSummary,
-) -> Vec<FileCandidate> {
-    let mut carried = Vec::with_capacity(eligible.len());
+fn run_single_file_archive(eligible: Vec<FileCandidate>, archive_config: &ArchiveConfig, summary: &mut JobSummary) {
     for candidate in eligible {
-        match archive::run_single_file(&candidate, &job.archive) {
-            Ok(result) => {
+        match archive::run_single_file(&candidate, archive_config) {
+            Ok(_) => {
                 summary.archived_count += 1;
                 summary.archived_bytes += candidate.size_bytes;
-                carried.push(FileCandidate {
-                    path: result.destination,
-                    ..candidate
-                });
             }
             Err(err) => {
                 summary.failed.push(StageOutcome {
@@ -238,48 +226,25 @@ fn run_single_file_archive(
             }
         }
     }
-    carried
 }
 
 fn run_bundle_archive(
-    job: &JobConfig,
+    archive_config: &ArchiveConfig,
     target_ref: &WatchTargetRef,
     eligible: Vec<FileCandidate>,
     summary: &mut JobSummary,
-) -> Result<Vec<FileCandidate>, NeatnikError> {
-    let groups = archive::run_bundle(&job.name, target_ref, &eligible, &job.archive)?;
-    let by_path: HashMap<PathBuf, FileCandidate> =
-        eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
+) -> Result<(), NeatnikError> {
+    let groups = archive::run_bundle(&archive_config.name, target_ref, &eligible, archive_config)?;
+    let by_path: HashMap<PathBuf, FileCandidate> = eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
 
-    let mut carried = Vec::new();
     for group in groups {
         match group.outcome {
             Ok(bundle) => {
-                let included: Vec<&FileCandidate> = bundle
-                    .included
-                    .iter()
-                    .filter_map(|path| by_path.get(path))
-                    .collect();
+                let included: Vec<&FileCandidate> = bundle.included.iter().filter_map(|path| by_path.get(path)).collect();
                 if !included.is_empty() {
-                    let max_basis = included
-                        .iter()
-                        .map(|candidate| candidate.basis_datetime)
-                        .max()
-                        .expect("included is non-empty");
-                    let total_bytes: u64 =
-                        included.iter().map(|candidate| candidate.size_bytes).sum();
+                    let total_bytes: u64 = included.iter().map(|candidate| candidate.size_bytes).sum();
                     summary.archived_count += included.len() as u64;
                     summary.archived_bytes += total_bytes;
-                    let bundle_size = fs::metadata(&bundle.bundle_path)
-                        .map(|m| m.len())
-                        .unwrap_or(0);
-                    carried.push(FileCandidate {
-                        path: bundle.bundle_path,
-                        target: target_ref.clone(),
-                        basis_datetime: max_basis,
-                        size_bytes: bundle_size,
-                        in_use: false,
-                    });
                 }
                 for stale_path in &bundle.stale {
                     summary.skipped.push(StageOutcome {
@@ -288,9 +253,6 @@ fn run_bundle_archive(
                         status: OutcomeStatus::Skipped,
                         reason: Some("bundle member newer than existing bundle (BR-3)".to_string()),
                     });
-                    if let Some(original) = by_path.get(stale_path) {
-                        carried.push(original.clone());
-                    }
                 }
             }
             Err(err) => {
@@ -305,77 +267,98 @@ fn run_bundle_archive(
             }
         }
     }
-    Ok(carried)
+    Ok(())
 }
 
-/// BR-11/BR-12: 退避段を評価する。失敗・衝突スキップ時は`None`を返し以降のカスケードを打ち切る
-/// (退避が完了していない状態で削除段に進むと、コピー元しか存在しないファイルを失う恐れがあるため安全側に倒す)
-fn apply_relocate(
-    job: &JobConfig,
-    mut current: FileCandidate,
+/// BR-11/BR-12: relocateエントリを実行する
+fn run_relocate_entry(
+    job_name: &str,
+    relocate_config: &RelocateConfig,
     now: DateTime<Utc>,
     dry_run: bool,
+    detector: &dyn WriteGuardDetector,
     summary: &mut JobSummary,
-) -> Option<FileCandidate> {
-    if !job.relocate.enabled {
-        return Some(current);
-    }
-    if elapsed_days(now, current.basis_datetime) < job.relocate.after_days as i64 {
-        summary.skipped.push(StageOutcome {
-            path: current.path.clone(),
-            stage: StageKind::Relocate,
-            status: OutcomeStatus::Skipped,
-            reason: Some("relocate grace period not elapsed (BR-1)".to_string()),
-        });
-        return Some(current);
-    }
-    if dry_run {
-        summary.relocated_count += 1;
-        summary.relocated_bytes += current.size_bytes;
-        return Some(current);
-    }
+) -> Result<(), NeatnikError> {
+    let candidates = scan_targets(job_name, &relocate_config.targets, detector, StageKind::Relocate, summary)?;
 
-    match relocate::run(&current, &job.relocate) {
-        Ok(result) => match result.outcome {
-            relocate::RelocateOutcome::Moved => {
-                summary.relocated_count += 1;
-                summary.relocated_bytes += current.size_bytes;
-                current.path = result.destination;
-                Some(current)
-            }
-            relocate::RelocateOutcome::Skipped => {
-                summary.skipped.push(StageOutcome {
-                    path: current.path,
-                    stage: StageKind::Relocate,
-                    status: OutcomeStatus::Skipped,
-                    reason: Some("destination conflict, on_conflict=skip (BR-12)".to_string()),
-                });
-                None
-            }
-        },
-        Err(err) => {
-            summary.failed.push(StageOutcome {
-                path: current.path,
+    for candidate in candidates {
+        if elapsed_days(now, candidate.basis_datetime) < relocate_config.after_days as i64 {
+            summary.skipped.push(StageOutcome {
+                path: candidate.path,
                 stage: StageKind::Relocate,
-                status: OutcomeStatus::Failed,
-                reason: Some(err.to_string()),
+                status: OutcomeStatus::Skipped,
+                reason: Some("relocate grace period not elapsed".to_string()),
             });
-            None
+            continue;
+        }
+
+        if dry_run {
+            summary.relocated_count += 1;
+            summary.relocated_bytes += candidate.size_bytes;
+            continue;
+        }
+
+        match relocate::run(&candidate, relocate_config) {
+            Ok(result) => match result.outcome {
+                relocate::RelocateOutcome::Moved => {
+                    summary.relocated_count += 1;
+                    summary.relocated_bytes += candidate.size_bytes;
+                }
+                relocate::RelocateOutcome::Skipped => {
+                    summary.skipped.push(StageOutcome {
+                        path: candidate.path,
+                        stage: StageKind::Relocate,
+                        status: OutcomeStatus::Skipped,
+                        reason: Some("destination conflict, on_conflict=skip (BR-12)".to_string()),
+                    });
+                }
+            },
+            Err(err) => {
+                summary.failed.push(StageOutcome {
+                    path: candidate.path,
+                    stage: StageKind::Relocate,
+                    status: OutcomeStatus::Failed,
+                    reason: Some(err.to_string()),
+                });
+            }
         }
     }
+    Ok(())
 }
 
-/// BR-13/BR-14: ジョブ内の削除対象をまとめてセーフティブレーキ評価にかけ、削除を実行する
-fn apply_delete(
-    candidates: &[FileCandidate],
-    job: &JobConfig,
+/// BR-13/BR-14: deleteエントリを実行する。セーフティブレーキはこのエントリ単位で評価する
+/// (2026-08-02改訂: ジョブ全体ではなくdeleteエントリ単位)
+fn run_delete_entry(
+    job_name: &str,
+    delete_config: &DeleteConfig,
+    now: DateTime<Utc>,
     dry_run: bool,
+    detector: &dyn WriteGuardDetector,
     summary: &mut JobSummary,
-) {
-    let report = delete::run(candidates, &job.delete.safety_brake, dry_run);
-    summary.safety_brake_triggered = report.evaluation.triggered && job.delete.safety_brake.enforce;
+) -> Result<(), NeatnikError> {
+    let candidates = scan_targets(job_name, &delete_config.targets, detector, StageKind::Delete, summary)?;
 
-    for (result, candidate) in report.results.into_iter().zip(candidates.iter()) {
+    let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) = candidates
+        .into_iter()
+        .partition(|c| elapsed_days(now, c.basis_datetime) >= delete_config.after_days as i64);
+
+    for candidate in &not_eligible {
+        summary.skipped.push(StageOutcome {
+            path: candidate.path.clone(),
+            stage: StageKind::Delete,
+            status: OutcomeStatus::Skipped,
+            reason: Some("delete grace period not elapsed".to_string()),
+        });
+    }
+
+    if eligible.is_empty() {
+        return Ok(());
+    }
+
+    let report = delete::run(&eligible, &delete_config.safety_brake, dry_run);
+    summary.safety_brake_triggered |= report.evaluation.triggered && delete_config.safety_brake.enforce;
+
+    for (result, candidate) in report.results.into_iter().zip(eligible.iter()) {
         match result.outcome {
             delete::DeleteOutcome::Deleted | delete::DeleteOutcome::DryRun => {
                 summary.deleted_count += 1;
@@ -399,19 +382,19 @@ fn apply_delete(
             }
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+
     use chrono::TimeZone;
     use tempfile::tempdir;
 
     use crate::clock::FixedClock;
-    use crate::config::{
-        ArchiveConfig, ArchiveFormat, ConflictPolicy, DeleteConfig, LayoutKind, RelocateConfig,
-        SafetyBrakeConfig, WatchTarget,
-    };
+    use crate::config::{ArchiveFormat, BasisKind, ConflictPolicy, LayoutKind, SafetyBrakeConfig};
     use crate::lock::FileJobLock;
 
     struct NeverInUse;
@@ -432,36 +415,43 @@ mod tests {
         crate::archive::set_mtime(path, when).unwrap();
     }
 
-    fn base_job(name: &str, basedir: &std::path::Path, destination: Option<PathBuf>) -> JobConfig {
-        JobConfig {
-            name: name.to_string(),
-            targets: vec![WatchTarget {
-                basedir: basedir.to_path_buf(),
-                name: None,
-                include: vec!["*.log".to_string()],
-                exclude: vec![],
-                basis: crate::config::BasisKind::Mtime,
-                filename_date_rules: vec![],
-            }],
-            archive: ArchiveConfig {
-                enabled: true,
-                after_days: 7,
-                format: ArchiveFormat::Gzip,
-                ..ArchiveConfig::default()
-            },
-            relocate: RelocateConfig {
-                enabled: true,
-                after_days: 30,
-                destination,
-                layout: LayoutKind::Preserve,
-                on_conflict: ConflictPolicy::Rename,
-            },
-            delete: DeleteConfig {
-                enabled: true,
-                after_days: 365,
-                safety_brake: SafetyBrakeConfig::default(),
-            },
+    fn target(basedir: &std::path::Path, include: &str) -> WatchTarget {
+        WatchTarget {
+            basedir: basedir.to_path_buf(),
+            name: None,
+            include: vec![include.to_string()],
+            exclude: vec![],
+            basis: BasisKind::Mtime,
+            filename_date_rules: vec![],
         }
+    }
+
+    fn archive_stage(basedir: &std::path::Path, after_days: u32) -> StageConfig {
+        StageConfig::Archive(ArchiveConfig {
+            name: "a".to_string(),
+            targets: vec![target(basedir, "*.log")],
+            after_days,
+            format: ArchiveFormat::Gzip,
+            ..ArchiveConfig::default()
+        })
+    }
+
+    fn relocate_stage(basedir: &std::path::Path, after_days: u32, destination: PathBuf) -> StageConfig {
+        StageConfig::Relocate(RelocateConfig {
+            targets: vec![target(basedir, "*.gz")],
+            after_days,
+            destination: Some(destination),
+            layout: LayoutKind::Preserve,
+            on_conflict: ConflictPolicy::Rename,
+        })
+    }
+
+    fn delete_stage(basedir: &std::path::Path, after_days: u32) -> StageConfig {
+        StageConfig::Delete(DeleteConfig {
+            targets: vec![target(basedir, "**/*")],
+            after_days,
+            safety_brake: SafetyBrakeConfig::default(),
+        })
     }
 
     #[test]
@@ -473,27 +463,24 @@ mod tests {
         let old = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
         set_old_mtime(&file, old);
 
-        let mut job = base_job(
-            "job",
-            source_dir.path(),
-            Some(dest_dir.path().to_path_buf()),
-        );
-        job.archive.after_days = 0;
-        job.relocate.after_days = 0;
-        job.delete.after_days = 0;
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![
+                archive_stage(source_dir.path(), 0),
+                relocate_stage(source_dir.path(), 0, dest_dir.path().to_path_buf()),
+                delete_stage(dest_dir.path(), 0),
+            ],
+        };
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
 
         assert_eq!(summary.archived_count, 1);
         assert_eq!(summary.relocated_count, 1);
         assert_eq!(summary.deleted_count, 1);
         assert!(summary.failed.is_empty());
 
-        // 最終的にアーカイブが作成された上で退避・削除まで完了し、どこにも実体が残らない
         let remaining: Vec<_> = walkdir::WalkDir::new(dest_dir.path())
             .into_iter()
             .filter_map(|e| e.ok())
@@ -512,20 +499,20 @@ mod tests {
         fs::write(&file, b"hello").unwrap();
         set_old_mtime(&file, Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
-        let job = base_job("job", source_dir.path(), None);
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![archive_stage(source_dir.path(), 7)],
+        };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false).unwrap().unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
         assert!(summary
             .skipped
             .iter()
-            .any(|outcome| outcome.stage == StageKind::Archive
-                && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
+            .any(|outcome| outcome.stage == StageKind::Archive && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
     }
 
     #[test]
@@ -533,14 +520,15 @@ mod tests {
         let source_dir = tempdir().unwrap();
         let file = source_dir.path().join("app.log");
         fs::write(&file, b"hello").unwrap();
-        // mtimeは「今」のまま(N1=7日の猶予に満たない)
+        // mtimeは「今」のまま(猶予に満たない)
 
-        let job = base_job("job", source_dir.path(), None);
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![archive_stage(source_dir.path(), 7)],
+        };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
@@ -554,31 +542,36 @@ mod tests {
         fs::write(&file, b"hello").unwrap();
         set_old_mtime(&file, Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
-        let mut job = base_job(
-            "job",
-            source_dir.path(),
-            Some(dest_dir.path().to_path_buf()),
-        );
-        job.archive.after_days = 0;
-        job.relocate.after_days = 0;
-        job.delete.after_days = 0;
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![
+                archive_stage(source_dir.path(), 0),
+                relocate_stage(source_dir.path(), 0, dest_dir.path().to_path_buf()),
+                delete_stage(dest_dir.path(), 0),
+            ],
+        };
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, true)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, true).unwrap().unwrap();
 
+        // dry-runは各エントリが「現時点でディスク上に存在するもの」だけを独立に報告する。
+        // archiveの出力はdry-runでは実際には作られないため、relocate/delete(archiveの出力
+        // パターンを監視するtargets)の対象はまだ存在せず0件になる。これは「メモリ上で候補を
+        // 持ち越す」旧設計とは異なる、stagesの独立スキャン方式(2026-08-02改訂)の帰結
         assert_eq!(summary.archived_count, 1);
-        assert_eq!(summary.relocated_count, 1);
-        assert_eq!(summary.deleted_count, 1);
+        assert_eq!(summary.relocated_count, 0);
+        assert_eq!(summary.deleted_count, 0);
         assert!(file.exists(), "dry-run must not touch the original file");
     }
 
     #[test]
     fn skips_the_job_when_already_locked() {
         let source_dir = tempdir().unwrap();
-        let job = base_job("job", source_dir.path(), None);
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![archive_stage(source_dir.path(), 7)],
+        };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
 
@@ -603,21 +596,22 @@ mod tests {
         fs::write(&file, b"hello").unwrap();
         set_old_mtime(&file, Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
-        let mut job = base_job("job", source_dir.path(), None);
-        job.archive.enabled = false;
-        job.relocate.enabled = false;
-        job.delete.after_days = 0;
-        job.delete.safety_brake = SafetyBrakeConfig {
-            enforce: true,
-            count_threshold: Some(0),
-            size_threshold_gb: None,
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![StageConfig::Delete(DeleteConfig {
+                targets: vec![target(source_dir.path(), "*.log")],
+                after_days: 0,
+                safety_brake: SafetyBrakeConfig {
+                    enforce: true,
+                    count_threshold: Some(0),
+                    size_threshold_gb: None,
+                },
+            })],
         };
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
 
         assert_eq!(summary.deleted_count, 0);
         assert!(summary.safety_brake_triggered);
@@ -625,7 +619,7 @@ mod tests {
     }
 
     #[test]
-    fn bundles_multiple_files_into_a_single_carried_candidate_for_relocation() {
+    fn bundles_multiple_files_and_relocates_the_bundle_as_a_single_unit() {
         let source_dir = tempdir().unwrap();
         let dest_dir = tempdir().unwrap();
         let file_a = source_dir.path().join("a.log");
@@ -636,27 +630,27 @@ mod tests {
         set_old_mtime(&file_a, basis);
         set_old_mtime(&file_b, basis);
 
-        let mut job = base_job(
-            "job",
-            source_dir.path(),
-            Some(dest_dir.path().to_path_buf()),
-        );
-        job.archive.bundle = BundleKind::Daily;
-        job.archive.bundle_timezone = Some("UTC".to_string());
-        job.relocate.after_days = 0;
-        job.delete.enabled = false;
+        let job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![
+                StageConfig::Archive(ArchiveConfig {
+                    name: "a".to_string(),
+                    targets: vec![target(source_dir.path(), "*.log")],
+                    after_days: 7,
+                    bundle: BundleKind::Daily,
+                    bundle_timezone: Some("UTC".to_string()),
+                    ..ArchiveConfig::default()
+                }),
+                relocate_stage(source_dir.path(), 0, dest_dir.path().to_path_buf()),
+            ],
+        };
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
-            .unwrap()
-            .unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
 
         assert_eq!(summary.archived_count, 2);
-        assert_eq!(
-            summary.relocated_count, 1,
-            "the bundle should be relocated as a single unit"
-        );
+        assert_eq!(summary.relocated_count, 1, "the bundle should be relocated as a single unit");
         assert!(!file_a.exists());
         assert!(!file_b.exists());
     }
@@ -664,13 +658,61 @@ mod tests {
     #[test]
     fn run_all_processes_every_job_independently() {
         let source_dir = tempdir().unwrap();
-        let job_a = base_job("job-a", source_dir.path(), None);
-        let job_b = base_job("job-b", source_dir.path(), None);
+        let job_a = JobConfig {
+            name: "job-a".to_string(),
+            stages: vec![archive_stage(source_dir.path(), 7)],
+        };
+        let job_b = JobConfig {
+            name: "job-b".to_string(),
+            stages: vec![archive_stage(source_dir.path(), 7)],
+        };
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
 
         let results = run_all(&[job_a, job_b], &clock, &NeverInUse, &lock, false);
         assert_eq!(results.len(), 2);
         assert!(results.iter().all(|(_, result)| result.is_ok()));
+    }
+
+    #[test]
+    fn delete_finds_relocated_files_independently_in_a_later_run() {
+        // これが今回のFunctional Design改訂の主な動機: relocateとdeleteが別々の実行で
+        // 完結する場合でも、deleteが自身のtargetsで退避先を独立にスキャンして発見できること
+        let source_dir = tempdir().unwrap();
+        let dest_dir = tempdir().unwrap();
+        let file = source_dir.path().join("app.log");
+        fs::write(&file, b"hello").unwrap();
+        set_old_mtime(&file, Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
+
+        // ロックファイルの置き場所(設定ファイルのディレクトリ相当、BR-16)は監視対象とは
+        // 別にする(実運用に忠実。deleteのtargetsがdest_dirを"**/*"で監視するため、同じ
+        // ディレクトリにロックファイルを置くとロックファイル自体を候補に含めてしまう)
+        let lock_dir = tempdir().unwrap();
+
+        // 1回目の実行: archive + relocate のみ(deleteエントリなし)
+        let relocate_job = JobConfig {
+            name: "job".to_string(),
+            stages: vec![
+                archive_stage(source_dir.path(), 0),
+                relocate_stage(source_dir.path(), 0, dest_dir.path().to_path_buf()),
+            ],
+        };
+        let clock = FixedClock::new(Utc::now());
+        let lock = FileJobLock::new(lock_dir.path());
+        let summary = run_job(&relocate_job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
+        assert_eq!(summary.relocated_count, 1);
+
+        // 2回目の実行(別ジョブ・別ロック相当): deleteのみが退避先を独立にスキャンする
+        let delete_job = JobConfig {
+            name: "cleanup".to_string(),
+            stages: vec![delete_stage(dest_dir.path(), 0)],
+        };
+        let lock2 = FileJobLock::new(lock_dir.path());
+        let summary2 = run_job(&delete_job, &clock, &NeverInUse, &lock2, false)
+            .unwrap()
+            .unwrap();
+        assert_eq!(summary2.deleted_count, 1, "delete should independently discover the relocated file");
     }
 }

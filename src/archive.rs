@@ -61,12 +61,12 @@ impl ArchiveNamer {
 
     /// バンドル圧縮の命名: `<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`。出力先はターゲットの`basedir`直下
     pub fn bundle_name(
-        job_name: &str,
+        archive_name: &str,
         target_name: &str,
         period_key: &str,
         basedir: &Path,
     ) -> PathBuf {
-        basedir.join(format!("{job_name}.{target_name}.{period_key}.tar.gz"))
+        basedir.join(format!("{archive_name}.{target_name}.{period_key}.tar.gz"))
     }
 }
 
@@ -180,7 +180,7 @@ pub struct BundleGroupResult {
 
 /// BR-10: 各ファイルの基準日時でグルーピングし、期間キーごとにバンドルを作成する(ターゲット単位)
 pub fn run_bundle(
-    job_name: &str,
+    archive_name: &str,
     target: &WatchTargetRef,
     candidates: &[FileCandidate],
     config: &ArchiveConfig,
@@ -196,7 +196,7 @@ pub fn run_bundle(
         .into_iter()
         .map(|(period_key, members)| {
             let member_paths = members.iter().map(|member| member.path.clone()).collect();
-            let outcome = run_bundle_group(job_name, target, &period_key, &members, config);
+            let outcome = run_bundle_group(archive_name, target, &period_key, &members, config);
             BundleGroupResult {
                 period_key,
                 members: member_paths,
@@ -208,14 +208,14 @@ pub fn run_bundle(
 }
 
 fn run_bundle_group(
-    job_name: &str,
+    archive_name: &str,
     target: &WatchTargetRef,
     period_key: &str,
     members: &[&FileCandidate],
     config: &ArchiveConfig,
 ) -> Result<BundleRunResult, ArchiveError> {
     let bundle_path =
-        ArchiveNamer::bundle_name(job_name, &target.name, period_key, &target.basedir);
+        ArchiveNamer::bundle_name(archive_name, &target.name, period_key, &target.basedir);
 
     if let Ok(metadata) = fs::metadata(&bundle_path) {
         let existing_mtime: DateTime<Utc> = metadata
@@ -516,7 +516,6 @@ mod tests {
         let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
         let candidate = make_candidate(dir.path(), "t", source.clone(), basis);
         let config = ArchiveConfig {
-            enabled: true,
             format: ArchiveFormat::Gzip,
             ..ArchiveConfig::default()
         };
@@ -546,7 +545,6 @@ mod tests {
         let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
         let candidate = make_candidate(dir.path(), "t", source.clone(), basis);
         let config = ArchiveConfig {
-            enabled: true,
             format: ArchiveFormat::Gzip,
             keep_original: true,
             ..ArchiveConfig::default()
@@ -565,7 +563,6 @@ mod tests {
         let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
         let candidate = make_candidate(dir.path(), "t", source.clone(), basis);
         let config = ArchiveConfig {
-            enabled: true,
             format: ArchiveFormat::Gzip,
             keep_original: true,
             ..ArchiveConfig::default()
@@ -587,7 +584,6 @@ mod tests {
             let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
             let candidate = make_candidate(dir.path(), "t", source.clone(), basis);
             let config = ArchiveConfig {
-                enabled: true,
                 format,
                 ..ArchiveConfig::default()
             };
@@ -617,7 +613,6 @@ mod tests {
         ];
         let target = make_target_ref(dir.path(), "t");
         let config = ArchiveConfig {
-            enabled: true,
             bundle: BundleKind::Daily,
             bundle_timezone: Some("UTC".to_string()),
             ..ArchiveConfig::default()
@@ -651,7 +646,6 @@ mod tests {
         let basis_a = Utc.with_ymd_and_hms(2026, 7, 25, 1, 0, 0).unwrap();
         let target = make_target_ref(dir.path(), "t");
         let config = ArchiveConfig {
-            enabled: true,
             bundle: BundleKind::Daily,
             bundle_timezone: Some("UTC".to_string()),
             keep_original: true,
@@ -706,7 +700,6 @@ mod tests {
         let basis_a = Utc.with_ymd_and_hms(2026, 7, 25, 1, 0, 0).unwrap();
         let target = make_target_ref(dir.path(), "t");
         let mut config = ArchiveConfig {
-            enabled: true,
             bundle: BundleKind::Daily,
             bundle_timezone: Some("UTC".to_string()),
             keep_original: true,
@@ -766,7 +759,6 @@ mod tests {
             fs::write(&source, &content).unwrap();
             let candidate = make_candidate(dir.path(), "t", source, basis);
             let config = ArchiveConfig {
-                enabled: true,
                 format,
                 ..ArchiveConfig::default()
             };
