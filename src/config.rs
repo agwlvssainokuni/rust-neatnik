@@ -39,11 +39,12 @@ impl RootConfig {
     }
 
     fn parse(content: &str, path: &Path) -> Result<Self, ConfigError> {
-        serde_norway::from_str(content)
-            .map_err(|source| unknown_field_error(&source).unwrap_or(ConfigError::Parse {
+        serde_norway::from_str(content).map_err(|source| {
+            unknown_field_error(&source).unwrap_or(ConfigError::Parse {
                 path: path.to_path_buf(),
                 source,
-            }))
+            })
+        })
     }
 
     /// 全ジョブをバリデーションし、警告(BR-2)の一覧を返す。エラー(BR-1等)があれば最初の1件を返す。
@@ -98,10 +99,15 @@ impl WatchTarget {
 
     /// `basedir`を正規化する(NFR-Design: パストラバーサル対策の起点)。
     pub fn canonical_basedir(&self, job_name: &str) -> Result<PathBuf, ConfigError> {
-        self.basedir.canonicalize().map_err(|source| ConfigError::Invalid {
-            job: job_name.to_string(),
-            reason: format!("basedir \"{}\" is not accessible: {source}", self.basedir.display()),
-        })
+        self.basedir
+            .canonicalize()
+            .map_err(|source| ConfigError::Invalid {
+                job: job_name.to_string(),
+                reason: format!(
+                    "basedir \"{}\" is not accessible: {source}",
+                    self.basedir.display()
+                ),
+            })
     }
 }
 
@@ -241,9 +247,21 @@ pub fn validate_job(job: &JobConfig) -> Result<Vec<ValidationWarning>, ConfigErr
     check_threshold_order(
         &job.name,
         &[
-            ("archive.after_days", job.archive.enabled, job.archive.after_days),
-            ("relocate.after_days", job.relocate.enabled, job.relocate.after_days),
-            ("delete.after_days", job.delete.enabled, job.delete.after_days),
+            (
+                "archive.after_days",
+                job.archive.enabled,
+                job.archive.after_days,
+            ),
+            (
+                "relocate.after_days",
+                job.relocate.enabled,
+                job.relocate.after_days,
+            ),
+            (
+                "delete.after_days",
+                job.delete.enabled,
+                job.delete.after_days,
+            ),
         ],
     )?;
 
@@ -262,10 +280,7 @@ pub fn validate_job(job: &JobConfig) -> Result<Vec<ValidationWarning>, ConfigErr
 }
 
 /// BR-1: 有効なステージ同士でのみ`N1 <= N2 <= N3`を検証する(等号は許容)。無効なステージの値は比較対象から除外する
-fn check_threshold_order(
-    job_name: &str,
-    stages: &[(&str, bool, u32)],
-) -> Result<(), ConfigError> {
+fn check_threshold_order(job_name: &str, stages: &[(&str, bool, u32)]) -> Result<(), ConfigError> {
     let enabled: Vec<(&str, u32)> = stages
         .iter()
         .filter(|(_, enabled, _)| *enabled)
@@ -277,9 +292,7 @@ fn check_threshold_order(
         if prev_days > next_days {
             return Err(ConfigError::Invalid {
                 job: job_name.to_string(),
-                reason: format!(
-                    "{prev_name} ({prev_days}) must be <= {next_name} ({next_days})"
-                ),
+                reason: format!("{prev_name} ({prev_days}) must be <= {next_name} ({next_days})"),
             });
         }
     }
@@ -304,7 +317,9 @@ fn unknown_field_error(source: &serde_norway::Error) -> Option<ConfigError> {
         .min_by_key(|(_, distance)| *distance)
         .filter(|(_, distance)| *distance <= 3)
         .map(|(candidate, _)| candidate.clone())
-        .unwrap_or_else(|| "one of the documented fields (see `neatnik init` for a sample)".to_string());
+        .unwrap_or_else(|| {
+            "one of the documented fields (see `neatnik init` for a sample)".to_string()
+        });
     Some(ConfigError::UnknownField { field, suggestion })
 }
 
@@ -430,17 +445,19 @@ jobs:
     #[test]
     fn is_within_basedir_detects_traversal() {
         let basedir = Path::new("/data/app");
-        assert!(is_within_basedir(basedir, Path::new("/data/app/logs/a.log")));
+        assert!(is_within_basedir(
+            basedir,
+            Path::new("/data/app/logs/a.log")
+        ));
         assert!(!is_within_basedir(basedir, Path::new("/data/other/a.log")));
         assert!(!is_within_basedir(basedir, Path::new("/etc/passwd")));
     }
 
     #[test]
     fn unknown_field_suggests_the_closest_known_field() {
-        let source = serde_norway::from_str::<JobConfig>(
-            "name: x\ntargets: []\narchve:\n  enabled: true\n",
-        )
-        .unwrap_err();
+        let source =
+            serde_norway::from_str::<JobConfig>("name: x\ntargets: []\narchve:\n  enabled: true\n")
+                .unwrap_err();
         let err = unknown_field_error(&source);
         match err {
             Some(ConfigError::UnknownField { field, suggestion }) => {

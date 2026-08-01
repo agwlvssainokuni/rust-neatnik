@@ -31,9 +31,15 @@ pub struct SafetyBrakeEvaluation {
 }
 
 /// BR-13: 削除対象の件数・合計容量を閾値と比較する(純粋関数)。
-pub fn evaluate_safety_brake(candidates: &[FileCandidate], config: &SafetyBrakeConfig) -> SafetyBrakeEvaluation {
+pub fn evaluate_safety_brake(
+    candidates: &[FileCandidate],
+    config: &SafetyBrakeConfig,
+) -> SafetyBrakeEvaluation {
     let count = candidates.len();
-    let total_bytes: u64 = candidates.iter().map(|candidate| candidate.size_bytes).sum();
+    let total_bytes: u64 = candidates
+        .iter()
+        .map(|candidate| candidate.size_bytes)
+        .sum();
     let count_exceeded = config
         .count_threshold
         .is_some_and(|threshold| count as u64 > threshold);
@@ -74,7 +80,11 @@ pub struct DeleteRunReport {
 /// **既知の制約**: BR-13後半の「`enforce: true`発動後、人手でロック解除するまで次回実行も
 /// 自動的に止め続ける」永続的な状態保持は、具体的なロックファイル形式・解除コマンドが
 /// Functional/NFR Designで未確定のため本ステップでは未実装。現状は実行のたびに閾値を再評価する
-pub fn run(candidates: &[FileCandidate], config: &SafetyBrakeConfig, dry_run: bool) -> DeleteRunReport {
+pub fn run(
+    candidates: &[FileCandidate],
+    config: &SafetyBrakeConfig,
+    dry_run: bool,
+) -> DeleteRunReport {
     let evaluation = evaluate_safety_brake(candidates, config);
     let blocked = evaluation.triggered && config.enforce;
 
@@ -115,7 +125,10 @@ pub fn run(candidates: &[FileCandidate], config: &SafetyBrakeConfig, dry_run: bo
         })
         .collect();
 
-    DeleteRunReport { evaluation, results }
+    DeleteRunReport {
+        evaluation,
+        results,
+    }
 }
 
 #[cfg(test)]
@@ -141,7 +154,11 @@ mod tests {
 
     #[test]
     fn triggers_on_count_threshold() {
-        let candidates = vec![candidate_with_size(1), candidate_with_size(1), candidate_with_size(1)];
+        let candidates = vec![
+            candidate_with_size(1),
+            candidate_with_size(1),
+            candidate_with_size(1),
+        ];
         let config = SafetyBrakeConfig {
             enforce: true,
             count_threshold: Some(2),

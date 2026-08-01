@@ -22,8 +22,18 @@ use proptest::prelude::*;
 /// 秒精度のUTC日時を2000-01-01〜2099-12-28の範囲で生成する(グレゴリオ暦上、月に依らず
 /// 常に妥当な日付になるよう日は28日までに制限する)
 pub fn arb_utc_datetime() -> impl Strategy<Value = DateTime<Utc>> {
-    (2000i32..2100, 1u32..13, 1u32..29, 0u32..24, 0u32..60, 0u32..60)
-        .prop_map(|(year, month, day, hour, minute, second)| Utc.with_ymd_and_hms(year, month, day, hour, minute, second).unwrap())
+    (
+        2000i32..2100,
+        1u32..13,
+        1u32..29,
+        0u32..24,
+        0u32..60,
+        0u32..60,
+    )
+        .prop_map(|(year, month, day, hour, minute, second)| {
+            Utc.with_ymd_and_hms(year, month, day, hour, minute, second)
+                .unwrap()
+        })
 }
 
 /// ファイルの内容として使う、非空のランダムバイト列を生成する

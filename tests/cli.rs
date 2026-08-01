@@ -197,7 +197,10 @@ fn run_dry_run_reports_counts_without_touching_files() {
         .stdout(predicate::str::contains("relocated 1"))
         .stdout(predicate::str::contains("deleted 1"));
 
-    assert!(log_file.exists(), "dry-run must not touch the original file");
+    assert!(
+        log_file.exists(),
+        "dry-run must not touch the original file"
+    );
 }
 
 #[test]
@@ -217,7 +220,10 @@ fn run_executes_the_full_pipeline_in_one_pass() {
         .assert()
         .success();
 
-    assert!(!log_file.exists(), "the file should have been archived, relocated and deleted");
+    assert!(
+        !log_file.exists(),
+        "the file should have been archived, relocated and deleted"
+    );
 }
 
 #[test]

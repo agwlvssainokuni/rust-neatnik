@@ -84,7 +84,10 @@ impl UnixWriteGuardDetector {
             Err(_) => return false,
         };
         match metadata.modified() {
-            Ok(modified) => modified.elapsed().map(|elapsed| elapsed < threshold).unwrap_or(false),
+            Ok(modified) => modified
+                .elapsed()
+                .map(|elapsed| elapsed < threshold)
+                .unwrap_or(false),
             Err(_) => false,
         }
     }
@@ -300,7 +303,9 @@ fn ctime_to_utc(metadata: &fs::Metadata, path: &Path) -> Result<DateTime<Utc>, S
 
 /// BR-7.1: `FilenameDateRule`を上から順に照合し、最初にマッチ+パース成功したものを採用する
 pub fn extract_filename_date(rules: &[FilenameDateRule], file_name: &str) -> Option<DateTime<Utc>> {
-    rules.iter().find_map(|rule| try_match_rule(rule, file_name))
+    rules
+        .iter()
+        .find_map(|rule| try_match_rule(rule, file_name))
 }
 
 fn try_match_rule(rule: &FilenameDateRule, file_name: &str) -> Option<DateTime<Utc>> {
@@ -386,7 +391,8 @@ mod tests {
 
         #[cfg(unix)]
         {
-            std::os::unix::fs::symlink(basedir.join("app.log"), basedir.join("linked.log")).unwrap();
+            std::os::unix::fs::symlink(basedir.join("app.log"), basedir.join("linked.log"))
+                .unwrap();
         }
 
         let target = WatchTarget {

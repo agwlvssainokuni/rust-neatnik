@@ -92,7 +92,12 @@ pub fn run_all<L: JobLock>(
     dry_run: bool,
 ) -> Vec<(String, Result<Option<JobSummary>, NeatnikError>)> {
     jobs.iter()
-        .map(|job| (job.name.clone(), run_job(job, clock, detector, lock, dry_run)))
+        .map(|job| {
+            (
+                job.name.clone(),
+                run_job(job, clock, detector, lock, dry_run),
+            )
+        })
         .collect()
 }
 
@@ -116,7 +121,9 @@ fn run_job_locked(
             name: target.resolved_name(),
         };
 
-        let (in_use, usable): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|candidate| candidate.in_use);
+        let (in_use, usable): (Vec<_>, Vec<_>) = candidates
+            .into_iter()
+            .partition(|candidate| candidate.in_use);
         for candidate in in_use {
             summary.skipped.push(StageOutcome {
                 path: candidate.path,
@@ -169,9 +176,10 @@ fn run_archive_stage(
         return Ok(candidates);
     }
 
-    let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) = candidates
-        .into_iter()
-        .partition(|candidate| elapsed_days(now, candidate.basis_datetime) >= job.archive.after_days as i64);
+    let (eligible, not_eligible): (Vec<FileCandidate>, Vec<FileCandidate>) =
+        candidates.into_iter().partition(|candidate| {
+            elapsed_days(now, candidate.basis_datetime) >= job.archive.after_days as i64
+        });
 
     for candidate in &not_eligible {
         summary.skipped.push(StageOutcome {
@@ -184,7 +192,10 @@ fn run_archive_stage(
 
     if dry_run {
         summary.archived_count += eligible.len() as u64;
-        summary.archived_bytes += eligible.iter().map(|candidate| candidate.size_bytes).sum::<u64>();
+        summary.archived_bytes += eligible
+            .iter()
+            .map(|candidate| candidate.size_bytes)
+            .sum::<u64>();
         let mut carried = eligible;
         carried.extend(not_eligible);
         return Ok(carried);
@@ -201,7 +212,11 @@ fn run_archive_stage(
     Ok(carried)
 }
 
-fn run_single_file_archive(job: &JobConfig, eligible: Vec<FileCandidate>, summary: &mut JobSummary) -> Vec<FileCandidate> {
+fn run_single_file_archive(
+    job: &JobConfig,
+    eligible: Vec<FileCandidate>,
+    summary: &mut JobSummary,
+) -> Vec<FileCandidate> {
     let mut carried = Vec::with_capacity(eligible.len());
     for candidate in eligible {
         match archive::run_single_file(&candidate, &job.archive) {
@@ -233,23 +248,31 @@ fn run_bundle_archive(
     summary: &mut JobSummary,
 ) -> Result<Vec<FileCandidate>, NeatnikError> {
     let groups = archive::run_bundle(&job.name, target_ref, &eligible, &job.archive)?;
-    let by_path: HashMap<PathBuf, FileCandidate> = eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
+    let by_path: HashMap<PathBuf, FileCandidate> =
+        eligible.into_iter().map(|c| (c.path.clone(), c)).collect();
 
     let mut carried = Vec::new();
     for group in groups {
         match group.outcome {
             Ok(bundle) => {
-                let included: Vec<&FileCandidate> = bundle.included.iter().filter_map(|path| by_path.get(path)).collect();
+                let included: Vec<&FileCandidate> = bundle
+                    .included
+                    .iter()
+                    .filter_map(|path| by_path.get(path))
+                    .collect();
                 if !included.is_empty() {
                     let max_basis = included
                         .iter()
                         .map(|candidate| candidate.basis_datetime)
                         .max()
                         .expect("included is non-empty");
-                    let total_bytes: u64 = included.iter().map(|candidate| candidate.size_bytes).sum();
+                    let total_bytes: u64 =
+                        included.iter().map(|candidate| candidate.size_bytes).sum();
                     summary.archived_count += included.len() as u64;
                     summary.archived_bytes += total_bytes;
-                    let bundle_size = fs::metadata(&bundle.bundle_path).map(|m| m.len()).unwrap_or(0);
+                    let bundle_size = fs::metadata(&bundle.bundle_path)
+                        .map(|m| m.len())
+                        .unwrap_or(0);
                     carried.push(FileCandidate {
                         path: bundle.bundle_path,
                         target: target_ref.clone(),
@@ -343,7 +366,12 @@ fn apply_relocate(
 }
 
 /// BR-13/BR-14: ジョブ内の削除対象をまとめてセーフティブレーキ評価にかけ、削除を実行する
-fn apply_delete(candidates: &[FileCandidate], job: &JobConfig, dry_run: bool, summary: &mut JobSummary) {
+fn apply_delete(
+    candidates: &[FileCandidate],
+    job: &JobConfig,
+    dry_run: bool,
+    summary: &mut JobSummary,
+) {
     let report = delete::run(candidates, &job.delete.safety_brake, dry_run);
     summary.safety_brake_triggered = report.evaluation.triggered && job.delete.safety_brake.enforce;
 
@@ -381,7 +409,8 @@ mod tests {
 
     use crate::clock::FixedClock;
     use crate::config::{
-        ArchiveConfig, ArchiveFormat, ConflictPolicy, DeleteConfig, LayoutKind, RelocateConfig, SafetyBrakeConfig, WatchTarget,
+        ArchiveConfig, ArchiveFormat, ConflictPolicy, DeleteConfig, LayoutKind, RelocateConfig,
+        SafetyBrakeConfig, WatchTarget,
     };
     use crate::lock::FileJobLock;
 
@@ -444,14 +473,20 @@ mod tests {
         let old = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
         set_old_mtime(&file, old);
 
-        let mut job = base_job("job", source_dir.path(), Some(dest_dir.path().to_path_buf()));
+        let mut job = base_job(
+            "job",
+            source_dir.path(),
+            Some(dest_dir.path().to_path_buf()),
+        );
         job.archive.after_days = 0;
         job.relocate.after_days = 0;
         job.delete.after_days = 0;
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 1);
         assert_eq!(summary.relocated_count, 1);
@@ -464,7 +499,10 @@ mod tests {
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .collect();
-        assert!(remaining.is_empty(), "the archived+relocated file should have been deleted in the same run");
+        assert!(
+            remaining.is_empty(),
+            "the archived+relocated file should have been deleted in the same run"
+        );
     }
 
     #[test]
@@ -477,14 +515,17 @@ mod tests {
         let job = base_job("job", source_dir.path(), None);
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &AlwaysInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
         assert!(summary
             .skipped
             .iter()
-            .any(|outcome| outcome.stage == StageKind::Archive && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
+            .any(|outcome| outcome.stage == StageKind::Archive
+                && outcome.reason.as_deref() == Some("file is in use (BR-7)")));
     }
 
     #[test]
@@ -497,7 +538,9 @@ mod tests {
         let job = base_job("job", source_dir.path(), None);
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 0);
         assert!(file.exists());
@@ -511,14 +554,20 @@ mod tests {
         fs::write(&file, b"hello").unwrap();
         set_old_mtime(&file, Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
-        let mut job = base_job("job", source_dir.path(), Some(dest_dir.path().to_path_buf()));
+        let mut job = base_job(
+            "job",
+            source_dir.path(),
+            Some(dest_dir.path().to_path_buf()),
+        );
         job.archive.after_days = 0;
         job.relocate.after_days = 0;
         job.delete.after_days = 0;
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, true).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, true)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 1);
         assert_eq!(summary.relocated_count, 1);
@@ -566,7 +615,9 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.deleted_count, 0);
         assert!(summary.safety_brake_triggered);
@@ -585,7 +636,11 @@ mod tests {
         set_old_mtime(&file_a, basis);
         set_old_mtime(&file_b, basis);
 
-        let mut job = base_job("job", source_dir.path(), Some(dest_dir.path().to_path_buf()));
+        let mut job = base_job(
+            "job",
+            source_dir.path(),
+            Some(dest_dir.path().to_path_buf()),
+        );
         job.archive.bundle = BundleKind::Daily;
         job.archive.bundle_timezone = Some("UTC".to_string());
         job.relocate.after_days = 0;
@@ -593,10 +648,15 @@ mod tests {
 
         let clock = FixedClock::new(Utc::now());
         let lock = FileJobLock::new(source_dir.path());
-        let summary = run_job(&job, &clock, &NeverInUse, &lock, false).unwrap().unwrap();
+        let summary = run_job(&job, &clock, &NeverInUse, &lock, false)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(summary.archived_count, 2);
-        assert_eq!(summary.relocated_count, 1, "the bundle should be relocated as a single unit");
+        assert_eq!(
+            summary.relocated_count, 1,
+            "the bundle should be relocated as a single unit"
+        );
         assert!(!file_a.exists());
         assert!(!file_b.exists());
     }

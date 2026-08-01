@@ -45,7 +45,11 @@ pub struct ArchiveNamer;
 
 impl ArchiveNamer {
     /// 単体ファイル圧縮の命名: `<元ファイル名>.<基準日時のYYYYMMDDTHHMMSSZ>.<拡張子>`。出力先は元ファイルと同じディレクトリ
-    pub fn single_file_name(original_path: &Path, basis_datetime: DateTime<Utc>, format: ArchiveFormat) -> PathBuf {
+    pub fn single_file_name(
+        original_path: &Path,
+        basis_datetime: DateTime<Utc>,
+        format: ArchiveFormat,
+    ) -> PathBuf {
         let parent = original_path.parent().unwrap_or_else(|| Path::new("."));
         let file_name = original_path
             .file_name()
@@ -56,7 +60,12 @@ impl ArchiveNamer {
     }
 
     /// バンドル圧縮の命名: `<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`。出力先はターゲットの`basedir`直下
-    pub fn bundle_name(job_name: &str, target_name: &str, period_key: &str, basedir: &Path) -> PathBuf {
+    pub fn bundle_name(
+        job_name: &str,
+        target_name: &str,
+        period_key: &str,
+        basedir: &Path,
+    ) -> PathBuf {
         basedir.join(format!("{job_name}.{target_name}.{period_key}.tar.gz"))
     }
 }
@@ -84,9 +93,11 @@ impl BundleKey {
 pub fn resolve_timezone(configured: Option<&str>) -> Result<Tz, ArchiveError> {
     let name = match configured {
         Some(tz) => tz.to_string(),
-        None => iana_time_zone::get_timezone().map_err(|source| ArchiveError::TimezoneDetection {
-            message: source.to_string(),
-        })?,
+        None => {
+            iana_time_zone::get_timezone().map_err(|source| ArchiveError::TimezoneDetection {
+                message: source.to_string(),
+            })?
+        }
     };
     Tz::from_str(&name).map_err(|_| ArchiveError::InvalidTimezone { name })
 }
@@ -99,8 +110,12 @@ pub struct SingleFileRunResult {
 }
 
 /// BR-8/BR-9/BR-3: 単体ファイルを圧縮する。既に決定的な名前の出力が存在する場合は再作成しない(冪等性)
-pub fn run_single_file(candidate: &FileCandidate, config: &ArchiveConfig) -> Result<SingleFileRunResult, NeatnikError> {
-    let destination = ArchiveNamer::single_file_name(&candidate.path, candidate.basis_datetime, config.format);
+pub fn run_single_file(
+    candidate: &FileCandidate,
+    config: &ArchiveConfig,
+) -> Result<SingleFileRunResult, NeatnikError> {
+    let destination =
+        ArchiveNamer::single_file_name(&candidate.path, candidate.basis_datetime, config.format);
 
     if destination.exists() {
         return Ok(SingleFileRunResult {
@@ -199,7 +214,8 @@ fn run_bundle_group(
     members: &[&FileCandidate],
     config: &ArchiveConfig,
 ) -> Result<BundleRunResult, ArchiveError> {
-    let bundle_path = ArchiveNamer::bundle_name(job_name, &target.name, period_key, &target.basedir);
+    let bundle_path =
+        ArchiveNamer::bundle_name(job_name, &target.name, period_key, &target.basedir);
 
     if let Ok(metadata) = fs::metadata(&bundle_path) {
         let existing_mtime: DateTime<Utc> = metadata
@@ -294,7 +310,10 @@ fn run_bundle_group(
 }
 
 fn temp_path_for(destination: &Path) -> PathBuf {
-    let file_name = destination.file_name().and_then(|n| n.to_str()).unwrap_or("archive");
+    let file_name = destination
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("archive");
     destination.with_file_name(format!(".{file_name}.tmp"))
 }
 
@@ -323,10 +342,12 @@ fn write_gzip(source: &Path, destination: &Path) -> Result<(), ArchiveError> {
         entry: source.to_path_buf(),
         source: source_err,
     })?;
-    encoder.finish().map_err(|source_err| ArchiveError::Create {
-        path: destination.to_path_buf(),
-        source: source_err,
-    })?;
+    encoder
+        .finish()
+        .map_err(|source_err| ArchiveError::Create {
+            path: destination.to_path_buf(),
+            source: source_err,
+        })?;
     Ok(())
 }
 
@@ -336,13 +357,18 @@ fn write_zip_single(source: &Path, destination: &Path) -> Result<(), ArchiveErro
         source: source_err,
     })?;
     let mut zip = zip::ZipWriter::new(file);
-    let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-    let name = source.file_name().and_then(|n| n.to_str()).unwrap_or("file");
-    zip.start_file(name, options).map_err(|e| ArchiveError::WriteEntry {
-        archive: destination.to_path_buf(),
-        entry: source.to_path_buf(),
-        source: io_err(e),
-    })?;
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+    let name = source
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("file");
+    zip.start_file(name, options)
+        .map_err(|e| ArchiveError::WriteEntry {
+            archive: destination.to_path_buf(),
+            entry: source.to_path_buf(),
+            source: io_err(e),
+        })?;
     let mut input = fs::File::open(source).map_err(|source_err| ArchiveError::Create {
         path: source.to_path_buf(),
         source: source_err,
@@ -375,14 +401,18 @@ fn write_tar_gz(entries: &[(PathBuf, String)], destination: &Path) -> Result<(),
                 source: source_err,
             })?;
     }
-    let encoder = builder.into_inner().map_err(|source_err| ArchiveError::Create {
-        path: destination.to_path_buf(),
-        source: source_err,
-    })?;
-    encoder.finish().map_err(|source_err| ArchiveError::Create {
-        path: destination.to_path_buf(),
-        source: source_err,
-    })?;
+    let encoder = builder
+        .into_inner()
+        .map_err(|source_err| ArchiveError::Create {
+            path: destination.to_path_buf(),
+            source: source_err,
+        })?;
+    encoder
+        .finish()
+        .map_err(|source_err| ArchiveError::Create {
+            path: destination.to_path_buf(),
+            source: source_err,
+        })?;
     Ok(())
 }
 
@@ -400,7 +430,12 @@ mod tests {
         }
     }
 
-    fn make_candidate(basedir: &Path, target_name: &str, path: PathBuf, basis: DateTime<Utc>) -> FileCandidate {
+    fn make_candidate(
+        basedir: &Path,
+        target_name: &str,
+        path: PathBuf,
+        basis: DateTime<Utc>,
+    ) -> FileCandidate {
         FileCandidate {
             size_bytes: fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
             path,
@@ -413,13 +448,25 @@ mod tests {
     #[test]
     fn single_file_name_matches_br8_format() {
         let basis = Utc.with_ymd_and_hms(2026, 7, 25, 3, 15, 42).unwrap();
-        let name = ArchiveNamer::single_file_name(Path::new("/var/log/app/app.log"), basis, ArchiveFormat::Gzip);
-        assert_eq!(name, PathBuf::from("/var/log/app/app.log.20260725T031542Z.gz"));
+        let name = ArchiveNamer::single_file_name(
+            Path::new("/var/log/app/app.log"),
+            basis,
+            ArchiveFormat::Gzip,
+        );
+        assert_eq!(
+            name,
+            PathBuf::from("/var/log/app/app.log.20260725T031542Z.gz")
+        );
     }
 
     #[test]
     fn bundle_name_matches_br8_format() {
-        let name = ArchiveNamer::bundle_name("app-server-logs", "var-log-app", "2026-07-25", Path::new("/var/log/app"));
+        let name = ArchiveNamer::bundle_name(
+            "app-server-logs",
+            "var-log-app",
+            "2026-07-25",
+            Path::new("/var/log/app"),
+        );
         assert_eq!(
             name,
             PathBuf::from("/var/log/app/app-server-logs.var-log-app.2026-07-25.tar.gz")
@@ -479,8 +526,16 @@ mod tests {
         assert!(result.destination.exists());
         assert!(!source.exists());
 
-        let mtime = fs::metadata(&result.destination).unwrap().modified().unwrap();
-        assert_eq!(DateTime::<Utc>::from(mtime).format("%Y-%m-%dT%H:%M:%S").to_string(), "2026-07-25T03:15:42");
+        let mtime = fs::metadata(&result.destination)
+            .unwrap()
+            .modified()
+            .unwrap();
+        assert_eq!(
+            DateTime::<Utc>::from(mtime)
+                .format("%Y-%m-%dT%H:%M:%S")
+                .to_string(),
+            "2026-07-25T03:15:42"
+        );
     }
 
     #[test]
@@ -537,7 +592,10 @@ mod tests {
                 ..ArchiveConfig::default()
             };
             let result = run_single_file(&candidate, &config).unwrap();
-            assert!(result.destination.exists(), "format {format:?} should produce an archive");
+            assert!(
+                result.destination.exists(),
+                "format {format:?} should produce an archive"
+            );
         }
     }
 
@@ -573,9 +631,14 @@ mod tests {
         assert!(!file_a.exists());
         assert!(!file_b.exists());
 
-        let mtime = fs::metadata(&bundle.bundle_path).unwrap().modified().unwrap();
+        let mtime = fs::metadata(&bundle.bundle_path)
+            .unwrap()
+            .modified()
+            .unwrap();
         assert_eq!(
-            DateTime::<Utc>::from(mtime).format("%Y-%m-%dT%H:%M:%S").to_string(),
+            DateTime::<Utc>::from(mtime)
+                .format("%Y-%m-%dT%H:%M:%S")
+                .to_string(),
             "2026-07-25T05:00:00"
         );
     }
@@ -603,7 +666,10 @@ mod tests {
         )
         .unwrap();
         assert!(first[0].outcome.as_ref().unwrap().created);
-        assert!(file_a.exists(), "keep_original: true should retain the source file");
+        assert!(
+            file_a.exists(),
+            "keep_original: true should retain the source file"
+        );
 
         // 2回目: basis_datetime <= 既存バンドルのmtime のため冪等にスキップされる
         let second = run_bundle(

@@ -149,7 +149,9 @@ fn resolve_clock(now: Option<&str>) -> anyhow::Result<Box<dyn Clock>> {
             let parsed = chrono::DateTime::parse_from_rfc3339(value).map_err(|err| {
                 anyhow::anyhow!("invalid --now value \"{value}\": {err} (expected RFC3339, e.g. 2027-01-01T00:00:00Z)")
             })?;
-            Ok(Box::new(FixedClock::new(parsed.with_timezone(&chrono::Utc))))
+            Ok(Box::new(FixedClock::new(
+                parsed.with_timezone(&chrono::Utc),
+            )))
         }
     }
 }
@@ -158,7 +160,11 @@ fn filter_jobs(jobs: &[JobConfig], job_name: Option<&str>) -> anyhow::Result<Vec
     match job_name {
         None => Ok(jobs.to_vec()),
         Some(name) => {
-            let filtered: Vec<JobConfig> = jobs.iter().filter(|job| job.name == name).cloned().collect();
+            let filtered: Vec<JobConfig> = jobs
+                .iter()
+                .filter(|job| job.name == name)
+                .cloned()
+                .collect();
             if filtered.is_empty() {
                 anyhow::bail!("job \"{name}\" was not found in the configuration");
             }
@@ -213,10 +219,16 @@ fn cmd_validate(opts: ConfigOpts) -> anyhow::Result<()> {
 
 fn cmd_init(args: InitArgs) -> anyhow::Result<()> {
     if args.output.exists() && !args.force {
-        anyhow::bail!("\"{}\" already exists. Use --force to overwrite it.", args.output.display());
+        anyhow::bail!(
+            "\"{}\" already exists. Use --force to overwrite it.",
+            args.output.display()
+        );
     }
     std::fs::write(&args.output, SAMPLE_CONFIG)?;
-    println!("wrote a sample configuration to \"{}\"", args.output.display());
+    println!(
+        "wrote a sample configuration to \"{}\"",
+        args.output.display()
+    );
     Ok(())
 }
 
@@ -261,7 +273,10 @@ fn print_summary(summary: &JobSummary) {
         summary.deleted_bytes,
     );
     if summary.safety_brake_triggered {
-        println!("  safety brake triggered for job \"{}\" (BR-13)", summary.job_name);
+        println!(
+            "  safety brake triggered for job \"{}\" (BR-13)",
+            summary.job_name
+        );
     }
     for outcome in &summary.failed {
         eprintln!(

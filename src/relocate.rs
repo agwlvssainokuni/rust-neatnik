@@ -37,7 +37,10 @@ pub enum RelocateOutcome {
 }
 
 /// FR-3/BR-11/BR-12: ファイルを保管先へコピー(mtime・パーミッション保持)後、元ファイルを削除する
-pub fn run(candidate: &FileCandidate, config: &RelocateConfig) -> Result<RelocateResult, NeatnikError> {
+pub fn run(
+    candidate: &FileCandidate,
+    config: &RelocateConfig,
+) -> Result<RelocateResult, NeatnikError> {
     let destination_base = compute_destination(candidate, config)?;
     let destination = match resolve_conflict(destination_base, config.on_conflict)? {
         Some(path) => path,
@@ -82,12 +85,21 @@ pub fn run(candidate: &FileCandidate, config: &RelocateConfig) -> Result<Relocat
     })
 }
 
-fn compute_destination(candidate: &FileCandidate, config: &RelocateConfig) -> Result<PathBuf, RelocateError> {
-    let base = config.destination.clone().ok_or_else(|| RelocateError::Copy {
-        from: candidate.path.clone(),
-        to: PathBuf::new(),
-        source: std::io::Error::new(std::io::ErrorKind::InvalidInput, "relocate.destination is not configured"),
-    })?;
+fn compute_destination(
+    candidate: &FileCandidate,
+    config: &RelocateConfig,
+) -> Result<PathBuf, RelocateError> {
+    let base = config
+        .destination
+        .clone()
+        .ok_or_else(|| RelocateError::Copy {
+            from: candidate.path.clone(),
+            to: PathBuf::new(),
+            source: std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "relocate.destination is not configured",
+            ),
+        })?;
 
     let relative = match config.layout {
         LayoutKind::Preserve => candidate
@@ -96,7 +108,11 @@ fn compute_destination(candidate: &FileCandidate, config: &RelocateConfig) -> Re
             .unwrap_or(&candidate.path)
             .to_path_buf(),
         LayoutKind::YearMonth => {
-            let file_name = candidate.path.file_name().map(PathBuf::from).unwrap_or_default();
+            let file_name = candidate
+                .path
+                .file_name()
+                .map(PathBuf::from)
+                .unwrap_or_default();
             PathBuf::from(candidate.basis_datetime.format("%Y/%m").to_string()).join(file_name)
         }
     };
@@ -105,7 +121,10 @@ fn compute_destination(candidate: &FileCandidate, config: &RelocateConfig) -> Re
 }
 
 /// BR-12: `on_conflict`設定に従う。`Some(path)`はコピー先、`None`はスキップを表す
-fn resolve_conflict(destination: PathBuf, policy: ConflictPolicy) -> Result<Option<PathBuf>, RelocateError> {
+fn resolve_conflict(
+    destination: PathBuf,
+    policy: ConflictPolicy,
+) -> Result<Option<PathBuf>, RelocateError> {
     if !destination.exists() {
         return Ok(Some(destination));
     }
@@ -115,7 +134,10 @@ fn resolve_conflict(destination: PathBuf, policy: ConflictPolicy) -> Result<Opti
         ConflictPolicy::Error => Err(RelocateError::Conflict { path: destination }),
         ConflictPolicy::Rename => {
             let parent = destination.parent().unwrap_or_else(|| Path::new("."));
-            let stem = destination.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+            let stem = destination
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("file");
             let extension = destination.extension().and_then(|s| s.to_str());
             let mut counter: u32 = 1;
             loop {
@@ -142,7 +164,11 @@ mod tests {
 
     use crate::scan::WatchTargetRef;
 
-    fn make_candidate(basedir: &Path, path: PathBuf, basis: chrono::DateTime<Utc>) -> FileCandidate {
+    fn make_candidate(
+        basedir: &Path,
+        path: PathBuf,
+        basis: chrono::DateTime<Utc>,
+    ) -> FileCandidate {
         FileCandidate {
             size_bytes: fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
             path,
@@ -238,9 +264,14 @@ mod tests {
         assert!(!source.exists());
         assert!(result.destination.exists());
 
-        let mtime = fs::metadata(&result.destination).unwrap().modified().unwrap();
+        let mtime = fs::metadata(&result.destination)
+            .unwrap()
+            .modified()
+            .unwrap();
         assert_eq!(
-            chrono::DateTime::<Utc>::from(mtime).format("%Y-%m-%dT%H:%M:%S").to_string(),
+            chrono::DateTime::<Utc>::from(mtime)
+                .format("%Y-%m-%dT%H:%M:%S")
+                .to_string(),
             "2026-07-25T03:15:42"
         );
     }
@@ -266,7 +297,11 @@ mod tests {
         };
 
         let result = run(&candidate, &config).unwrap();
-        let mode = fs::metadata(&result.destination).unwrap().permissions().mode() & 0o777;
+        let mode = fs::metadata(&result.destination)
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
         assert_eq!(mode, 0o640);
     }
 
@@ -290,7 +325,10 @@ mod tests {
         let result = run(&candidate, &config).unwrap();
         assert_eq!(result.outcome, RelocateOutcome::Skipped);
         assert!(source.exists());
-        assert_eq!(fs::read(dest_dir.path().join("a.log")).unwrap(), b"existing");
+        assert_eq!(
+            fs::read(dest_dir.path().join("a.log")).unwrap(),
+            b"existing"
+        );
     }
 
     proptest! {
