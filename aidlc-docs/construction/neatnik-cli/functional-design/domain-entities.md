@@ -11,7 +11,6 @@
 |---|---|---|
 | name | String | ジョブ名。ロックファイル名・バンドルアーカイブ名の一部にも使う |
 | targets | List\<WatchTarget\> | 監視対象(複数可、FR-1) |
-| basis | BasisKind(Mtime\|Ctime\|FilenameDate) | 基準日時の情報源。デフォルトMtime |
 | archive | ArchiveConfig | アーカイブ段階の設定 |
 | relocate | RelocateConfig | 退避段階の設定 |
 | delete | DeleteConfig | 削除段階の設定 |
@@ -25,6 +24,16 @@
 | name | Option\<String\> | ターゲット識別子。省略時は`basedir`から自動導出する(例: `/var/log/app` → `var-log-app`)。バンドルアーカイブの命名で衝突を避けるために使う |
 | include | List\<GlobPattern\> | `basedir`からの相対パスによる対象ファイルパターン(複数可) |
 | exclude | List\<GlobPattern\> | `basedir`からの相対パスによる除外パターン |
+| basis | BasisKind(Mtime\|Ctime\|FilenameDate) | 基準日時の情報源。デフォルトMtime。ターゲット単位で持つ(ファイル命名規則がターゲットごとに異なりうるため) |
+| filename_date_rules | List\<FilenameDateRule\> | `basis: FilenameDate`の場合のみ使用。複数設定可能で、ファイル名に対して上から順に照合し最初にマッチしたものを採用する |
+
+### FilenameDateRule
+`basis: FilenameDate`における日付抽出ルール1件。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| regex | String | ファイル名から日付部分を抽出する正規表現。日付部分を名前付きキャプチャグループ(例: `(?P<date>...)`)で指定する |
+| format | String | キャプチャした文字列をパースする日付フォーマット(例: `%Y-%m-%d`) |
 
 ### ArchiveConfig
 | フィールド | 型 | 説明 |

@@ -202,3 +202,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し(続き)。requirements.md・成果物3ファイルを更新。
 
 ---
+
+## Functional Design - basis/FilenameDateRuleをWatchTargetへ移動
+**Timestamp**: 2026-08-01T17:40:00Z
+**User Input**: "JobConfigのBasisKindについて。FilenameDateの場合、ファイル名のどの部分から日付を抽出するかを指定する必要がありそうです。" → (AIの提案・構造上の疑問提起に対して)"WatchTargetに移動でOKです。ただし、厳密にいうとincludeの要素ごとに設定すべきですよね。それならば、正規表現とパースパターンを複数設定できるようにして上から順に照合、というのも作戦としてはありだと思います。"
+**AI Response**: `basis`(BasisKind)を`JobConfig`から`WatchTarget`へ移動。`FilenameDate`選択時の日付抽出方式として、`include`要素ごとの厳密な紐付けではなく、`FilenameDateRule`(正規表現の名前付きキャプチャ+日付フォーマット)のリストを上から順に照合し最初にマッチしたものを採用する方式を採用。どれにもマッチしない場合はファイル単位でスキップしログに記録(ジョブ全体は中断しない)。requirements.md(FR-1)、domain-entities.md(WatchTarget更新、FilenameDateRule新設)、business-rules.md(BR-7.1新設、エラーハンドリング表・PBT表に追加)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し(続き)。requirements.md・成果物2ファイルを更新。
+
+---
