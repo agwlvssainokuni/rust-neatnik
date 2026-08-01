@@ -109,3 +109,18 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
 
 ---
+
+## Requirements Analysis - 補足: 引数なし実行時のウェルカムガイド
+**Timestamp**: 2026-08-01T15:14:00Z
+**User Input**: "まだです。引数なしで実行したらシンプルなヘルプが表示されて、何から手をつければ良いかの案内をしてくれると良いかも。"
+**AI Response**: FR-11に「サブコマンドなしで実行した場合の挙動」を追記。エラーや`--help`全量出力ではなく、簡潔なウェルカムメッセージ(init→validate→runの案内)を表示し、詳細は`--help`に誘導する方針とした。
+**Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
+
+---
+
+## Audit Log Correction: 時系列の誤挿入を是正
+**Timestamp**: 2026-08-01T15:16:00Z
+**AI Response**: 直前の追記で「引数なし実行時のウェルカムガイド」(15:14)を「ヘルプ充実・設定ファイル雛形生成」(15:10)より前に誤って挿入していたことに気づき、時系列順になるよう並べ替えて是正した([[feedback-audit-md-append-only]]ルールに基づく)。
+**Context**: audit.md自己訂正。
+
+---
