@@ -607,3 +607,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、BR-2.2追加完了。
 
 ---
+
+## basis: Ctime の削除
+**Timestamp**: 2026-08-02T02:36:00Z
+**User Input**: "ctimeで猶予期間を見るのって問題になりませんか？ archiveした時点でctimeが変わっちゃいませんか？" → "OK"
+**AI Response**: Unixのctimeは「メタデータ最終変更日時」であり「作成日時」ではなく、BR-9のmtime継承のために出力ファイルへ`filetime::set_file_mtime`でmtimeを明示設定する操作自体が、OS仕様上ctimeを「今」にリセットする副作用を伴うことを説明。この副作用は回避不能なため、一度でもarchive/relocateを経由したファイルでは`basis: ctime`による経過日数計算が機能しないことを確認し、`basis`の選択肢から`Ctime`を削除することを提案、ユーザーが承認。`requirements.md`(FR-1改訂注記)、`domain-entities.md`(WatchTarget.basisをMtime/FilenameDateの2択に変更、FilenameDateRuleのスコープ注記も更新)、`business-rules.md`(BR-7.1の関連記述更新、改訂履歴に追記)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design、basis: Ctime削除完了。
+
+---

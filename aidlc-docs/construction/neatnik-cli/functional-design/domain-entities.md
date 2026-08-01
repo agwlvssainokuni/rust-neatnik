@@ -34,7 +34,7 @@
 | name | Option\<String\> | ターゲット識別子。省略時は`basedir`から自動導出する(例: `/var/log/app` → `var-log-app`)。バンドルアーカイブの命名で衝突を避けるために使う |
 | include | List\<GlobPattern\> | `basedir`からの相対パスによる対象ファイルパターン(複数可) |
 | exclude | List\<GlobPattern\> | `basedir`からの相対パスによる除外パターン |
-| basis | BasisKind(Mtime\|Ctime\|FilenameDate) | 基準日時の情報源。デフォルトMtime。ターゲット単位で持つ(ファイル命名規則がターゲットごとに異なりうるため) |
+| basis | BasisKind(Mtime\|FilenameDate) | 基準日時の情報源。デフォルトMtime。ターゲット単位で持つ(ファイル命名規則がターゲットごとに異なりうるため)。**(2026-08-02改訂)** `Ctime`は削除した。理由: archive/relocateがBR-9のmtime継承のために出力ファイルのmtimeを明示的に設定する操作は、OSの仕様上ctimeを「今」にリセットする副作用を伴うため、一度でもarchive/relocateを経由したファイルではctime基準の経過日数計算が機能しない |
 | filename_date_rules | List\<FilenameDateRule\> | `basis: FilenameDate`の場合のみ使用。複数設定可能で、ファイル名に対して上から順に照合し最初にマッチしたものを採用する |
 
 ### FilenameDateRule
@@ -45,7 +45,7 @@
 | regex | String | ファイル名(**basename、ディレクトリ階層を除いた部分**)に対する正規表現。日付部分を名前付きキャプチャグループ`(?P<date>...)`で指定する。キャプチャの前後には任意のリテラル文字列(プレフィックス・サフィックス)を含められる |
 | format | String | キャプチャした文字列をパースする日付フォーマット(例: `%Y-%m-%d`) |
 
-**スコープ**: `include`/`exclude`はディレクトリ階層を含んだglob(例: `**/*.log`)をサポートするが、`FilenameDateRule.regex`は常に**ファイルのbasenameのみ**に対して評価する(ディレクトリ部分は含まない)。ディレクトリ名自体に日付が埋め込まれているケース(例: `2026-07-01/access.log`)は本ルールのスコープ外とし、そのようなレイアウトでは`basis: Mtime`/`Ctime`を使用する
+**スコープ**: `include`/`exclude`はディレクトリ階層を含んだglob(例: `**/*.log`)をサポートするが、`FilenameDateRule.regex`は常に**ファイルのbasenameのみ**に対して評価する(ディレクトリ部分は含まない)。ディレクトリ名自体に日付が埋め込まれているケース(例: `2026-07-01/access.log`)は本ルールのスコープ外とし、そのようなレイアウトでは`basis: Mtime`を使用する
 
 **例**: 1ターゲット内に複数の命名規則が混在する場合、ファイル名全体に固定するパターンをルールごとに書くことで、事実上「ファイル(命名規則)ごと」の抽出ルールとして機能する。
 ```
