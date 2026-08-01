@@ -4,7 +4,7 @@
 - **Project Name**: Neatnik(仮称。命名の最終確認は未了 — draft-spec.md 1章参照)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-08-01T08:10:00Z
-- **Current Stage**: INCEPTION - Requirements Analysis
+- **Current Stage**: INCEPTION - Workflow Planning
 
 ## Workspace State
 - **Existing Code**: No
@@ -19,6 +19,12 @@
 ## Reference Input
 - **Draft Spec**: `aidlc-docs/inception/requirements/draft-spec.md`(ユーザー提供の叩き台。変更前提)
 
+## Execution Plan Summary
+- **Plan Document**: `aidlc-docs/inception/plans/execution-plan.md`
+- **Unit of Work**: 単一ユニット `neatnik-cli`(Units Generation不要)
+- **Stages to Execute**: Functional Design, NFR Requirements, NFR Design, Code Generation, Build and Test
+- **Stages to Skip**: Reverse Engineering(Greenfield)、User Stories、Application Design、Units Generation、Infrastructure Design
+
 ## Extension Configuration
 | Extension | Enabled | Decided At |
 |---|---|---|
@@ -30,8 +36,25 @@
 ### 🔵 INCEPTION PHASE
 - [x] Workspace Detection
 - [ ] Reverse Engineering (N/A - Greenfield)
-- [x] Requirements Analysis (requirements.md作成完了、ユーザー承認待ち)
-- [ ] User Stories (TBD)
-- [ ] Workflow Planning
-- [ ] Application Design (TBD)
-- [ ] Units Generation (TBD)
+- [x] Requirements Analysis (承認済み — 2026-08-01T14:40:00Z)
+- [ ] User Stories (スキップ — ユーザーからの追加指示なし)
+- [x] Workflow Planning (execution-plan.md作成完了、ユーザー承認待ち)
+- [ ] Application Design - SKIP(単一クレート構成のため不要)
+- [ ] Units Generation - SKIP(単一ユニット `neatnik-cli` として進める)
+
+### 🟢 CONSTRUCTION PHASE (Unit: neatnik-cli)
+- [ ] Functional Design - EXECUTE
+- [ ] NFR Requirements - EXECUTE
+- [ ] NFR Design - EXECUTE
+- [ ] Infrastructure Design - SKIP(クラウドインフラなし)
+- [ ] Code Generation - EXECUTE
+- [ ] Build and Test - EXECUTE
+
+### 🟡 OPERATIONS PHASE
+- [ ] Operations - PLACEHOLDER
+
+## Current Status
+- **Lifecycle Phase**: INCEPTION
+- **Current Stage**: Workflow Planning(承認待ち)
+- **Next Stage**: Functional Design(Unit: neatnik-cli)
+- **Status**: Ready to proceed pending user approval
