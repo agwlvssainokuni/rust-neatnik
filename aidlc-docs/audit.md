@@ -551,3 +551,11 @@
 **Context**: サンプル設定ファイルのi18n対応完了。
 
 ---
+
+## サンプル設定選択ロジックをi18n.rsに集約
+**Timestamp**: 2026-08-02T00:25:00Z
+**User Input**: "configはsrc/i18n.rsに寄せなくても良いの？"
+**AI Response**: 指摘の通り、`main.rs`に残っていた`SAMPLE_CONFIG_EN`/`SAMPLE_CONFIG_JA`定数と`sample_config()`関数を`src/i18n.rs`に移動(`pub fn i18n::sample_config(locale)`)。i18n関連のロジックを`i18n.rs`に一元化。`cargo test`(22件)・`cargo clippy -D warnings`・`cargo fmt --check`で警告なし・全件成功を確認。
+**Context**: i18n関連コードの配置整理完了。
+
+---

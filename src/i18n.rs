@@ -21,6 +21,17 @@
 use clap::builder::PossibleValue;
 use clap::{Command, ValueEnum};
 
+/// `neatnik init`が出力するサンプル設定(FR-11)。リポジトリ同梱の`config.example.{en,ja}.yaml`と共通
+const SAMPLE_CONFIG_EN: &str = include_str!("../config.example.en.yaml");
+const SAMPLE_CONFIG_JA: &str = include_str!("../config.example.ja.yaml");
+
+pub fn sample_config(locale: Locale) -> &'static str {
+    match locale {
+        Locale::En => SAMPLE_CONFIG_EN,
+        Locale::Ja => SAMPLE_CONFIG_JA,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Locale {
     En,
