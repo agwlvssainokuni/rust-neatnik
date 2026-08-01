@@ -74,24 +74,29 @@ touch -t "$(days_ago 400)" "$LOGS_DIR/app-old.log"
 cat > "$CONFIG_PATH" <<EOF
 jobs:
   - name: demo-job
-    targets:
-      - basedir: "$LOGS_DIR"
-        include: ["*.log"]
-    archive:
-      enabled: true
-      after_days: 7
-      format: gzip
-      bundle: none
-      keep_original: false
-    relocate:
-      enabled: true
-      after_days: 30
-      destination: "$STORAGE_DIR"
-      layout: preserve
-      on_conflict: rename
-    delete:
-      enabled: true
-      after_days: 365
+    stages:
+      - type: archive
+        name: demo-job-archive
+        targets:
+          - basedir: "$LOGS_DIR"
+            include: ["*.log"]
+        after_days: 7
+        format: gzip
+        bundle: none
+        keep_original: false
+      - type: relocate
+        targets:
+          - basedir: "$LOGS_DIR"
+            include: ["*.gz"]
+        after_days: 30
+        destination: "$STORAGE_DIR"
+        layout: preserve
+        on_conflict: rename
+      - type: delete
+        targets:
+          - basedir: "$STORAGE_DIR"
+            include: ["**/*"]
+        after_days: 365
 EOF
 
 section "logs/ の初期状態(mtime = 経過日数)"
