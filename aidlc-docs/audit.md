@@ -326,3 +326,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 3(clock モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 4完了
+**Timestamp**: 2026-08-01T19:03:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/config.rs`に`RootConfig`/`JobConfig`/`WatchTarget`/`FilenameDateRule`/`ArchiveConfig`/`RelocateConfig`/`DeleteConfig`/`SafetyBrakeConfig`と関連enumを実装。`serde_norway`によるYAMLパース、BR-1(有効ステージ間のみN1<=N2<=N3検証)、BR-2(全ステージ無効時は警告のみ)、BR-4(未知フィールドをレーベンシュタイン距離で提案)、relocate.destination必須チェック、`WatchTarget::canonical_basedir`によるbasedir正規化(パストラバーサル対策の起点)、`is_within_basedir`ヘルパーを実装。単体テスト11件+proptestプロパティテスト3件(BR-1のInvariant、PBT-03相当)を追加し、`cargo test --lib`・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 4(config モジュール)完了。
+
+---

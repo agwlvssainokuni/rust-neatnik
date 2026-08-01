@@ -35,6 +35,8 @@ pub enum ConfigError {
     Invalid { job: String, reason: String },
     #[error("path \"{path}\" escapes basedir \"{basedir}\"")]
     PathTraversal { path: PathBuf, basedir: PathBuf },
+    #[error("unknown field \"{field}\"; did you mean \"{suggestion}\"?")]
+    UnknownField { field: String, suggestion: String },
 }
 
 /// scan モジュールのエラー(走査・基準日時決定)

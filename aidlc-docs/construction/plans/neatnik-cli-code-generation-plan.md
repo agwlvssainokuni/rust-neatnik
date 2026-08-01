@@ -28,11 +28,11 @@
 - [x] 単体テスト
 
 ### Step 4: config モジュール
-- [ ] `JobConfig`, `WatchTarget`, `ArchiveConfig`, `RelocateConfig`, `DeleteConfig`, `SafetyBrakeConfig`, `FilenameDateRule`を実装(domain-entities.md)
-- [ ] `serde_norway`によるYAMLパース
-- [ ] バリデーションロジック(BR-1: N1<=N2<=N3、BR-2: 全ステージ無効化警告、BR-3: バンドル関連、BR-4: 未知フィールド候補提示、BR-5: 設定ファイル不在時の案内)
-- [ ] パストラバーサル対策(NFR-Design: basedir正規化・包含チェック)
-- [ ] 単体テスト + プロパティテスト(BR-1の大小関係検証、PBT-03)
+- [x] `JobConfig`, `WatchTarget`, `ArchiveConfig`, `RelocateConfig`, `DeleteConfig`, `SafetyBrakeConfig`, `FilenameDateRule`を実装(domain-entities.md)
+- [x] `serde_norway`によるYAMLパース
+- [x] バリデーションロジック(BR-1: N1<=N2<=N3、BR-2: 全ステージ無効化警告、BR-4: 未知フィールド候補提示)。BR-3(バンドル冪等性)はarchiveモジュール(Step 6)、BR-5(設定ファイル不在時の案内)はCLI(Step 12)で対応
+- [x] パストラバーサル対策(NFR-Design: basedir正規化・包含チェック)
+- [x] 単体テスト + プロパティテスト(BR-1の大小関係検証、PBT-03)
 
 ### Step 5: scan モジュール
 - [ ] `FileCandidate`、`WriteGuardDetector`トレイトを実装
