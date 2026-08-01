@@ -226,3 +226,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、承認前の確認(続き)。domain-entities.md・business-rules.mdを更新。
 
 ---
+
+## Functional Design - Approved
+**Timestamp**: 2026-08-01T17:52:00Z
+**User Input**: "承認します。"
+**AI Response**: Functional Design(neatnik-cli)の承認を記録。NFR Requirementsステージへ移行する。
+**Context**: CONSTRUCTION PHASE - Functional Design 完了 → NFR Requirements 開始。
+
+---
