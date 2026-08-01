@@ -279,3 +279,11 @@
 **Context**: CONSTRUCTION PHASE - NFR Design Step 5-6完了。ユーザー承認待ち。
 
 ---
+
+## NFR Design - Approved
+**Timestamp**: 2026-08-01T18:28:00Z
+**User Input**: "承認します。Code Generationへ進めてください。"
+**AI Response**: NFR Design(neatnik-cli)の承認を記録。execution-plan.mdの通りInfrastructure Design(SKIP、クラウドインフラなし)を飛ばし、Code Generationステージへ移行する。
+**Context**: CONSTRUCTION PHASE - NFR Design 完了 → Infrastructure Design(SKIP) → Code Generation 開始。
+
+---

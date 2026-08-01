@@ -4,7 +4,7 @@
 - **Project Name**: Neatnik(仮称。命名の最終確認は未了 — draft-spec.md 1章参照)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-08-01T08:10:00Z
-- **Current Stage**: CONSTRUCTION - NFR Design (Unit: neatnik-cli)
+- **Current Stage**: CONSTRUCTION - Code Generation (Unit: neatnik-cli)
 
 ## Workspace State
 - **Existing Code**: No
@@ -45,9 +45,9 @@
 ### 🟢 CONSTRUCTION PHASE (Unit: neatnik-cli)
 - [x] Functional Design - EXECUTE (承認済み — 2026-08-01T17:52:00Z)
 - [x] NFR Requirements - EXECUTE (承認済み — 2026-08-01T18:15:00Z)
-- [x] NFR Design - EXECUTE (成果物生成完了、ユーザー承認待ち)
-- [ ] Infrastructure Design - SKIP(クラウドインフラなし)
-- [ ] Code Generation - EXECUTE
+- [x] NFR Design - EXECUTE (承認済み — 2026-08-01T18:28:00Z)
+- [x] Infrastructure Design - SKIP(クラウドインフラなし)
+- [ ] Code Generation - EXECUTE (in progress)
 - [ ] Build and Test - EXECUTE
 
 ### 🟡 OPERATIONS PHASE
@@ -55,6 +55,6 @@
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: NFR Design(Unit: neatnik-cli、進行中)
-- **Next Stage**: Code Generation(Unit: neatnik-cli)
+- **Current Stage**: Code Generation(Unit: neatnik-cli、進行中)
+- **Next Stage**: Build and Test
 - **Status**: In progress
