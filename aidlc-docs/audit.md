@@ -264,3 +264,10 @@
 **Context**: CONSTRUCTION PHASE - NFR Requirements 完了 → NFR Design 開始。
 
 ---
+
+## NFR Design - Plan & Questions Created
+**Timestamp**: 2026-08-01T18:18:00Z
+**AI Response**: NFR Requirements成果物を分析。Scalability/Performance Patternsは既に決定済み・該当なしと判断根拠を明記。Resilience(リトライ戦略)とSecurity(設定ファイルの信頼レベル・パストラバーサル対策)の2点を質問(D1, D2)としてAI推奨案付きで`neatnik-cli-nfr-design-plan.md`に作成し回答待ち。Logical Componentsはユーザー入力を要さずAIが設計する方針とした。
+**Context**: CONSTRUCTION PHASE - NFR Design Step 2-4。ユーザー回答待ち。
+
+---
