@@ -70,6 +70,12 @@ pub enum ArchiveError {
     },
     #[error("insufficient disk space while archiving to {path}")]
     InsufficientSpace { path: PathBuf },
+    #[error("invalid timezone \"{name}\"")]
+    InvalidTimezone { name: String },
+    #[error("failed to detect local timezone: {message}")]
+    TimezoneDetection { message: String },
+    #[error("bundle member {path} is newer than existing bundle {bundle}")]
+    StaleBundleMember { path: PathBuf, bundle: PathBuf },
 }
 
 /// relocate モジュールのエラー(退避コピー)

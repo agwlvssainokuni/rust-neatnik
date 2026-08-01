@@ -43,11 +43,11 @@
 - [x] 単体テスト
 
 ### Step 6: archive モジュール
-- [ ] `ArchiveNamer`(単体ファイル命名 BR-8、バンドル命名 BR-8)
-- [ ] `BundleKey`(期間キー計算、タイムゾーン対応、BR-10)
-- [ ] 圧縮実行(`flate2`/`tar`/`zip`、アトミック書き込み BR-2)
-- [ ] mtime継承(BR-9)、バンドル冪等性のmtime比較判定(BR-3、`on_stale_bundle_member`)
-- [ ] 単体テスト + プロパティテスト(`ArchiveNamer`/`BundleKey`の決定性、PBT-02/03/07/08)
+- [x] `ArchiveNamer`(単体ファイル命名 BR-8、バンドル命名 BR-8)
+- [x] `BundleKey`(期間キー計算、タイムゾーン対応、BR-10)
+- [x] 圧縮実行(`flate2`/`tar`/`zip`、アトミック書き込み BR-2)
+- [x] mtime継承(BR-9)、バンドル冪等性のmtime比較判定(BR-3、`on_stale_bundle_member`)。mtime設定に`filetime`クレートを追加(tech-stack-decisions.md補正、`tar`の既存推移的依存を採用)
+- [x] 単体テスト + プロパティテスト(`ArchiveNamer`/`BundleKey`の決定性、PBT-02/03/07/08)
 
 ### Step 7: relocate モジュール
 - [ ] コピー処理(mtime/パーミッション保持、BR-11)

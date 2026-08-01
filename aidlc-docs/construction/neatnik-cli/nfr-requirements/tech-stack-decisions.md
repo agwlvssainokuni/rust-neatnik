@@ -18,6 +18,7 @@
 | `tar` | tarアーカイブ生成 | FR-2(tar.gz、バンドル圧縮) |
 | `zip` | zip圧縮 | FR-2 |
 | `fd-lock` | クロスプラットフォーム対応アドバイザリファイルロック | FR-8(ジョブ多重起動防止)。Linux/macOS/Windowsを1つのAPIで抽象化(Q C2=A)。Unix版の書き込み中判定(BR-7)にも同じ機構を再利用する |
+| `filetime` | ファイルのmtime設定(クロスプラットフォーム) | BR-9(アーカイブ出力・退避先ファイルへのmtime継承)。標準ライブラリには任意のmtimeを設定するAPIがないため追加(Code Generation Step 6で判明した抜け漏れ、NFR Requirements時点では未選定だった)。`tar`クレートの推移的依存として既にビルドグラフに含まれており、新規のサプライチェーン面の増加はない |
 | `windows-sys` | Windows API直接呼び出し | BR-7(Windowsの共有モードオープン試行による書き込み中判定)。軽量なローレベルバインディングのため`windows`クレートより`windows-sys`を採用(Windows専用ターゲットでのみ依存) |
 | `regex` | 正規表現 | BR-7.1(FilenameDateRuleのファイル名照合) |
 | `chrono` | 日時計算・フォーマット | 基準日時計算全般、FR-2命名規則(YYYYMMDDTHHMMSSZ) |

@@ -342,3 +342,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 5(scan モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 6完了(+ tech-stack-decisions.md補正)
+**Timestamp**: 2026-08-01T19:20:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/archive.rs`に`ArchiveNamer`(BR-8命名規則)、`BundleKey`(BR-10期間キー計算、タイムゾーン対応)、`resolve_timezone`(未指定時はローカルタイムゾーン)、`run_single_file`(既存ファイルチェックによる冪等性)、`run_bundle`/`run_bundle_group`(mtime比較によるバンドル冪等性、`on_stale_bundle_member`のWarn/Error分岐、BR-3)を実装。アトミック書き込み(一時ファイル+rename)、mtime継承(BR-9、単体は基準日時、バンドルは最大値)を実装。**実装中に判明した設計ドキュメントの抜け漏れとして、mtime設定用クレートがNFR Requirements時点で未選定だったため、`filetime`(`tar`クレートの既存の推移的依存であり新規サプライチェーン面の増加なし)を追加し、`tech-stack-decisions.md`を補正した**。単体テスト16件+proptestプロパティテスト2件(ArchiveNamer/BundleKeyの決定性、PBT-02/03/07/08相当)を追加し、`cargo test --lib`(41件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 6(archive モジュール)完了。tech-stack-decisions.mdへの依存クレート追加を伴う。
+
+---
