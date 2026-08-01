@@ -5,17 +5,26 @@
 ## 設定モデル
 
 ### JobConfig
-ジョブ単位(対象ディレクトリ×ルールの組)の設定。
+ジョブ単位(監視対象×ルールの組)の設定。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
 | name | String | ジョブ名。ロックファイル名・バンドルアーカイブ名の一部にも使う |
-| include | List\<GlobPattern\> | 対象ファイルパターン(複数可) |
-| exclude | List\<GlobPattern\> | 除外パターン |
+| targets | List\<WatchTarget\> | 監視対象(複数可、FR-1) |
 | basis | BasisKind(Mtime\|Ctime\|FilenameDate) | 基準日時の情報源。デフォルトMtime |
 | archive | ArchiveConfig | アーカイブ段階の設定 |
 | relocate | RelocateConfig | 退避段階の設定 |
 | delete | DeleteConfig | 削除段階の設定 |
+
+### WatchTarget
+1つの監視対象ディレクトリとそのパターンを表す(FR-1、FD議論により導入)。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| basedir | PathBuf | 監視対象ディレクトリ(絶対パス)。「元階層保持」レイアウト(RelocateConfig.layout)の相対パス計算の基準にもなる |
+| name | Option\<String\> | ターゲット識別子。省略時は`basedir`から自動導出する(例: `/var/log/app` → `var-log-app`)。バンドルアーカイブの命名で衝突を避けるために使う |
+| include | List\<GlobPattern\> | `basedir`からの相対パスによる対象ファイルパターン(複数可) |
+| exclude | List\<GlobPattern\> | `basedir`からの相対パスによる除外パターン |
 
 ### ArchiveConfig
 | フィールド | 型 | 説明 |
@@ -75,6 +84,7 @@ CLI引数から構築される実行コンテキスト。
 | フィールド | 型 | 説明 |
 |---|---|---|
 | path | PathBuf | ファイルパス |
+| target | WatchTargetRef | 由来するWatchTarget(basedir・ターゲット名)への参照。「元階層保持」の相対パス計算(FR-3)とバンドル命名(FR-2)に使う |
 | basis_datetime | DateTime | 基準日時(JobConfig.basisに従い決定) |
 | size_bytes | u64 | ファイルサイズ |
 | in_use | bool | 書き込み中と判定されたか(NFR-OS、OS別ロジック) |
@@ -124,8 +134,8 @@ CLI引数から構築される実行コンテキスト。
 ### ArchiveNamer
 | メソッド | 説明 |
 |---|---|
-| single_file_name(original_path, basis_datetime, format) -> PathBuf | 単体ファイル圧縮の命名規則を実装(FR-2: `<元ファイル名>.<YYYYMMDDTHHMMSSZ>.<拡張子>`) |
-| bundle_name(job_name, period_key, format) -> PathBuf | バンドル圧縮の命名規則を実装(FR-2: `<ジョブ名>.<期間キー>.tar.gz`) |
+| single_file_name(original_path, basis_datetime, format) -> PathBuf | 単体ファイル圧縮の命名規則を実装(FR-2: `<元ファイル名>.<YYYYMMDDTHHMMSSZ>.<拡張子>`)。出力先は元ファイルと同じディレクトリ |
+| bundle_name(job_name, target_name, period_key, format) -> PathBuf | バンドル圧縮の命名規則を実装(FR-2: `<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`)。出力先はそのターゲットの`basedir`直下。ターゲット名を含めるのは、同一ジョブ内の複数ターゲットが同じ期間キーで別々にバンドルを作った際の名前衝突を避けるため |
 
 ### BundleKey
 | メソッド | 説明 |

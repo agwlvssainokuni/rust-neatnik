@@ -107,8 +107,11 @@ if job.delete.enabled and (now - current.basis_datetime) >= N3:
 
 ```
 1. スキャンで得た候補のうち、アーカイブ条件(N1経過)を満たすものを抽出
-2. 各候補の基準日時から BundleKey.compute() で期間キーを算出し、期間キーごとにグルーピング (BR-10)
-3. 期間キーに対応する既存バンドルファイル(ArchiveNamer.bundle_name)が存在するか確認する
+2. 候補をWatchTarget(basedir)ごとに分け、ターゲット内で各候補の基準日時から
+   BundleKey.compute() で期間キーを算出し、期間キーごとにグルーピング (BR-10)
+   (異なるターゲットの候補は別々にグルーピングする。1つのバンドルに混在させない)
+3. 期間キーに対応する既存バンドルファイル(ArchiveNamer.bundle_name: job_name,
+   target_name, period_key)が存在するか確認する
    - 存在しない場合: グループ内の全候補で新規バンドルを作成する
    - 存在する場合(keep_original: true運用で再実行されたケース): グループ内の各候補について、
      candidate.basis_datetime <= 既存バンドルのmtime か比較する (BR-3)

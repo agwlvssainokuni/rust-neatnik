@@ -194,3 +194,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し。成果物3ファイル・計画書を更新。
 
 ---
+
+## Functional Design - JobConfig再設計: WatchTarget(basedir)の導入とバンドル名衝突の解消
+**Timestamp**: 2026-08-01T17:20:00Z
+**User Input**: "JobConfigについて。include, exclude だけでなく、basedirも必要なのでは？それともinclude, excludeのフルパスを書くイメージですか？" → "OK. これに関連して。zip/tar.gz, gzipはどこに作りますか？" → "バンドル圧縮の場合、basedirごとに同じファイル名かつ中身の異なるバンドルがつくられ得ることになりますね。これは注意が必要そうです。" → "提案の通りとしましょう。"
+**AI Response**: JobConfigを`include`/`exclude`直書きから、`WatchTarget`(basedir + ターゲット名 + basedir相対のinclude/exclude)の配列に再設計。「元階層保持」レイアウトの相対パス基準を明確化。アーカイブ出力先を単体ファイルは元ファイルと同じディレクトリ、バンドルはターゲットのbasedir直下に決定。ユーザー指摘により判明した「同一ジョブの複数ターゲットが同じ期間キーで別々にバンドルを作ると、ジョブ名+期間キーだけでは名前が衝突し、退避後に中身の異なるファイル同士が上書き/衝突しうる」問題を、バンドル命名にターゲット名を追加(`<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`)することで解消。requirements.md(FR-1〜FR-3)、domain-entities.md(WatchTarget追加)、business-rules.md(BR-6, BR-8)、business-logic-model.md(バンドル処理単位)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し(続き)。requirements.md・成果物3ファイルを更新。
+
+---
