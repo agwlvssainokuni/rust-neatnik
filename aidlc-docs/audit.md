@@ -599,3 +599,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design再改訂完了。ユーザー承認待ち。
 
 ---
+
+## BR-2.2追加: archiveエントリ内のターゲット名重複禁止
+**Timestamp**: 2026-08-02T02:30:00Z
+**User Input**: "同じbasedirのtargetが複数指定された場合にどうするか、という課題はあるかな。後勝ちで、後に書いたtargetのバンドルで上書き、という注意事項がありますよ、ということで良いかな。それが嫌ならarchive.nameを変えたもう一つのarchiveを書くってことで。" → "OKです。"
+**AI Response**: 実際の挙動は「後勝ちで上書き」ではなく「先勝ちで、後のtargetの候補がBR-3のmtime比較により無期限にバンドルされないまま放置される」ことを説明。この重複は(includeパターンの自己参照リスクと異なり)ファイルシステムを見ずに静的に確実に検知できるため、単なる注意書きに留めず`validate`時のバリデーションとして追加することを提案し、ユーザーが承認。`business-rules.md`にBR-2.2(archiveエントリ内でのバンドルモード時のターゲット名重複を設定エラーとする)を新設し、PBT-01表に対応プロパティを追加。`domain-entities.md`のArchiveConfig.targets説明にも反映。
+**Context**: CONSTRUCTION PHASE - Functional Design、BR-2.2追加完了。
+
+---

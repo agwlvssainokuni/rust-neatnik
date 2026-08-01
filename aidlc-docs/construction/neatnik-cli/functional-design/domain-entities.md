@@ -59,7 +59,7 @@
 | フィールド | 型 | 説明 |
 |---|---|---|
 | name | String | **(2026-08-02追加、必須)** このarchiveエントリの識別子。バンドル命名(`<name>.<ターゲット名>.<期間キー>.tar.gz`)に使う。旧設計のジョブ名の役割を引き継ぐ。同一job内外を問わず、他のarchiveエントリと偶然一致すると命名衝突しうるが、利用者の責任とする(BR-8) |
-| targets | List\<WatchTarget\> | アーカイブ対象の監視対象(複数可)。最低1件必須(BR-2.1) |
+| targets | List\<WatchTarget\> | アーカイブ対象の監視対象(複数可)。最低1件必須(BR-2.1)。バンドルモード時は解決後のターゲット名が重複してはならない(BR-2.2、2026-08-02追加) |
 | after_days (N1) | u32 | アーカイブ猶予日数 |
 | format | ArchiveFormat(Gzip\|Zip\|TarGz) | 圧縮形式(FR-2) |
 | bundle | BundleKind(None\|Daily\|Weekly\|Monthly) | まとめ方針(FR-2) |
