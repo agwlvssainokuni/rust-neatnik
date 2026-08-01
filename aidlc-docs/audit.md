@@ -478,3 +478,20 @@
 **Context**: CONSTRUCTION PHASE - Code Generation(neatnik-cli)承認完了。Build and Testステージ開始。
 
 ---
+
+## Build and Test Stage
+**Timestamp**: 2026-08-01T22:56:00Z
+**Build Status**: Success
+**Test Status**: Pass(単体テスト73件、CLI統合テスト14件。clippy `-D warnings`・fmt --check・cargo docともに問題なし)
+**Files Generated**:
+- build-instructions.md
+- unit-test-instructions.md
+- integration-test-instructions.md
+- performance-test-instructions.md
+- security-test-instructions.md(Security Baseline拡張の適用対象のため追加)
+- build-and-test-summary.md
+
+**AI Response**: `cargo fmt`未適用分を解消したうえで、5種の指示書(+Security Baseline対応のsecurity-test-instructions.md)を`aidlc-docs/construction/build-and-test/`に作成。実行結果(ビルド成功、単体テスト73件・統合テスト14件全成功、静的解析警告0件)をbuild-and-test-summary.mdにまとめ、既知の制約(BR-13永続ブレーキ、Windows未検証、アーカイブ重複作成の限界、cargo-deny未実行)を明記。完了メッセージを提示し承認待ち。
+**Context**: CONSTRUCTION PHASE - Build and Testステージ、指示書生成・実行完了、ユーザー承認待ち。
+
+---
