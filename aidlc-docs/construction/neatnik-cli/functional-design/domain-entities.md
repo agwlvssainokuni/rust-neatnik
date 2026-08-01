@@ -2,22 +2,31 @@
 
 技術非依存の概念モデルとして記述する(Rustの型はあくまで実装イメージの参考)。
 
-> **改訂履歴(2026-08-02)**: `WatchTarget`のリストをジョブ直下(`JobConfig.targets`)から各ステージ設定(`ArchiveConfig.targets`/`RelocateConfig.targets`/`DeleteConfig.targets`)へ移動した。背景・理由はrequirements.md FR-1の改訂注記、およびbusiness-rules.md BR-9を参照。
+> **改訂履歴(2026-08-02、2回目)**: `JobConfig`を「archive/relocate/deleteをそれぞれ0か1個持つ」構造から、「**ステージエントリ(archive/relocate/deleteのいずれか)を任意個・任意の順序で並べたリスト`stages`を持つ**」構造に変更した。あわせて`enabled: bool`を廃止(リストへの記載有無で有効/無効を表現)し、バンドル命名で使っていた`job名`を`ArchiveConfig.name`(新規必須フィールド)に置き換えた。背景・理由はrequirements.md FR-5/FR-1の改訂注記、およびbusiness-rules.md参照。(1回目の改訂で`targets`をステージ毎に分離した内容は本改訂に統合済み)
 
 ## 設定モデル
 
 ### JobConfig
-ジョブ単位(archive/relocate/deleteのルールの組)の設定。
+ジョブ単位(ロックスコープ、FR-5・FR-8)の設定。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| name | String | ジョブ名。ロックファイル名の一部にも使う |
-| archive | ArchiveConfig | アーカイブ段階の設定(自身の監視対象を含む) |
-| relocate | RelocateConfig | 退避段階の設定(自身の監視対象を含む) |
-| delete | DeleteConfig | 削除段階の設定(自身の監視対象を含む) |
+| name | String | ジョブ名。ロックファイル名(`.{name}.lock`)にのみ使う。バンドル命名にはもう使わない(2026-08-02改訂) |
+| stages | List\<StageConfig\> | archive/relocate/deleteのステージエントリを**任意個・任意の順序**で並べたリスト(0個も許容、business-rules.md BR-2参照) |
+
+### StageConfig
+`stages`リストの1要素。archive/relocate/deleteのいずれか1種類の設定を保持するタグ付き共用体。
+
+| バリアント | 内容 |
+|---|---|
+| Archive(ArchiveConfig) | アーカイブ(圧縮)処理1件分の設定 |
+| Relocate(RelocateConfig) | 退避処理1件分の設定 |
+| Delete(DeleteConfig) | 削除処理1件分の設定 |
+
+`stages`は**書かれた順序どおりに実行する**(business-rules.md BR-9)。`enabled`という概念は持たない。「無効化したい」場合はリストから当該エントリを削除する(YAMLコメントアウトでも代替可能)。
 
 ### WatchTarget
-1つの監視対象ディレクトリとそのパターンを表す(FR-1)。**archive/relocate/deleteの各ステージが自身の`targets`として個別に持つ**(2026-08-02改訂。旧設計ではジョブ直下で3ステージ共有していた)。
+1つの監視対象ディレクトリとそのパターンを表す(FR-1)。`ArchiveConfig`/`RelocateConfig`/`DeleteConfig`がそれぞれ自身の`targets`として個別に持つ。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -49,8 +58,8 @@
 ### ArchiveConfig
 | フィールド | 型 | 説明 |
 |---|---|---|
-| enabled | bool | 有効/無効(スキップ可、FR-5) |
-| targets | List\<WatchTarget\> | **(2026-08-02追加)** アーカイブ対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須(新規バリデーション、business-rules.md参照) |
+| name | String | **(2026-08-02追加、必須)** このarchiveエントリの識別子。バンドル命名(`<name>.<ターゲット名>.<期間キー>.tar.gz`)に使う。旧設計のジョブ名の役割を引き継ぐ。同一job内外を問わず、他のarchiveエントリと偶然一致すると命名衝突しうるが、利用者の責任とする(BR-8) |
+| targets | List\<WatchTarget\> | アーカイブ対象の監視対象(複数可)。最低1件必須(BR-2.1) |
 | after_days (N1) | u32 | アーカイブ猶予日数 |
 | format | ArchiveFormat(Gzip\|Zip\|TarGz) | 圧縮形式(FR-2) |
 | bundle | BundleKind(None\|Daily\|Weekly\|Monthly) | まとめ方針(FR-2) |
@@ -61,20 +70,18 @@
 ### RelocateConfig
 | フィールド | 型 | 説明 |
 |---|---|---|
-| enabled | bool | 有効/無効(スキップ可) |
-| targets | List\<WatchTarget\> | **(2026-08-02追加)** 退避対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須。通常はarchiveステージの出力先(単体圧縮なら元ファイルと同じディレクトリ)を指す |
+| targets | List\<WatchTarget\> | 退避対象の監視対象(複数可)。最低1件必須(BR-2.1)。通常はarchiveステージの出力先(単体圧縮なら元ファイルと同じディレクトリ)を指す |
 | after_days (N2) | u32 | 退避猶予日数 |
 | destination | PathBuf | 保管先ディレクトリ |
-| layout | LayoutKind(Preserve\|YearMonth) | 移動先ディレクトリ構造。`Preserve`は当該候補が属する**このステージ自身の`WatchTarget.basedir`**からの相対パスを保持する |
+| layout | LayoutKind(Preserve\|YearMonth) | 移動先ディレクトリ構造。`Preserve`は当該候補が属する**このエントリ自身の`WatchTarget.basedir`**からの相対パスを保持する |
 | on_conflict | ConflictPolicy(Rename\|Skip\|Error) | 同名ファイル衝突時の挙動 |
 
 ### DeleteConfig
 | フィールド | 型 | 説明 |
 |---|---|---|
-| enabled | bool | 有効/無効(スキップ可) |
-| targets | List\<WatchTarget\> | **(2026-08-02追加)** 削除対象の監視対象(複数可)。`enabled: true`の場合は最低1件必須。通常はrelocateステージの保管先(`RelocateConfig.destination`)を指す |
+| targets | List\<WatchTarget\> | 削除対象の監視対象(複数可)。最低1件必須(BR-2.1)。通常はrelocateステージの保管先(`RelocateConfig.destination`)を指す |
 | after_days (N3) | u32 | 削除猶予日数 |
-| safety_brake | SafetyBrakeConfig | セーフティブレーキ設定 |
+| safety_brake | SafetyBrakeConfig | セーフティブレーキ設定。**このdeleteエントリ自身の対象集合のみで判定する**(2026-08-02改訂。ジョブ全体でのバッチ評価ではない) |
 
 ### SafetyBrakeConfig
 | フィールド | 型 | 説明 |
@@ -107,8 +114,8 @@ CLI引数から構築される実行コンテキスト。
 | フィールド | 型 | 説明 |
 |---|---|---|
 | path | PathBuf | ファイルパス |
-| target | WatchTargetRef | 由来するWatchTarget(basedir・ターゲット名)への参照。**発見元のステージ自身の`targets`から得る**(2026-08-02改訂)。「元階層保持」の相対パス計算(FR-3)とバンドル命名(FR-2)に使う |
-| basis_datetime | DateTime | 基準日時(JobConfig.basisに従い決定) |
+| target | WatchTargetRef | 由来するWatchTarget(basedir・ターゲット名)への参照。発見元のステージエントリ自身の`targets`から得る。「元階層保持」の相対パス計算(FR-3)とバンドル命名(FR-2)に使う |
+| basis_datetime | DateTime | 基準日時(WatchTarget.basisに従い決定) |
 | size_bytes | u64 | ファイルサイズ |
 | in_use | bool | 書き込み中と判定されたか(NFR-OS、OS別ロジック) |
 
@@ -120,7 +127,7 @@ CLI引数から構築される実行コンテキスト。
 ### JobLock(トレイト/抽象)
 | メソッド | 説明 |
 |---|---|
-| acquire(job_name) -> Result\<LockGuard\> | 多重起動防止のアドバイザリファイルロックを取得(FR-8)。クロスプラットフォーム対応クレート(`fd-lock`等)で実装し、ロックファイルは設定ファイルと同じディレクトリに`.<job-name>.lock`として作成(FD-A3) |
+| acquire(job_name) -> Result\<LockGuard\> | 多重起動防止のアドバイザリファイルロックを取得(FR-8)。クロスプラットフォーム対応クレート(`fd-lock`等)で実装し、ロックファイルは設定ファイルと同じディレクトリに`.<job-name>.lock`として作成(FD-A3)。ジョブ(=`stages`全体)を1つのスコープとして排他制御する |
 
 ### Notifier(トレイト/抽象、MVPでは未実装)
 | メソッド | 説明 |
@@ -130,27 +137,27 @@ CLI引数から構築される実行コンテキスト。
 ## 処理結果モデル
 
 ### StageOutcome
-1ファイル・1ステージの処理結果。
+1ファイル・1ステージエントリの処理結果。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
 | file | FileCandidate | 対象ファイル |
-| stage | StageKind(Archive\|Relocate\|Delete) | 実行されたステージ |
+| stage | StageKind(Archive\|Relocate\|Delete) | 実行されたステージの種別 |
 | status | OutcomeStatus(Processed\|Skipped\|Failed) | 結果 |
 | reason | Option\<String\> | スキップ・失敗理由 |
 
 ### JobSummary
-ジョブ1回の実行結果サマリ(NFR-1: 実行前後のサマリ表示に使用)。
+ジョブ1回の実行結果サマリ(NFR-1: 実行前後のサマリ表示に使用)。`stages`内の全エントリを通じた集計値。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
 | job_name | String | ジョブ名 |
-| archived_count / archived_bytes | u64 | アーカイブ件数・合計サイズ |
-| relocated_count / relocated_bytes | u64 | 退避件数・合計サイズ |
-| deleted_count / deleted_bytes | u64 | 削除件数・合計サイズ |
+| archived_count / archived_bytes | u64 | アーカイブ件数・合計サイズ(全archiveエントリの合計) |
+| relocated_count / relocated_bytes | u64 | 退避件数・合計サイズ(全relocateエントリの合計) |
+| deleted_count / deleted_bytes | u64 | 削除件数・合計サイズ(全deleteエントリの合計) |
 | skipped | List\<StageOutcome\> | スキップされた項目 |
 | failed | List\<StageOutcome\> | 失敗した項目 |
-| safety_brake_triggered | bool | セーフティブレーキが発動したか |
+| safety_brake_triggered | bool | いずれかのdeleteエントリでセーフティブレーキが発動したか(エントリ毎の判定をORで集約) |
 
 ## 補助コンポーネント(ライブラリ化候補、requirements.md 2.1参照)
 
@@ -158,7 +165,7 @@ CLI引数から構築される実行コンテキスト。
 | メソッド | 説明 |
 |---|---|
 | single_file_name(original_path, basis_datetime, format) -> PathBuf | 単体ファイル圧縮の命名規則を実装(FR-2: `<元ファイル名>.<YYYYMMDDTHHMMSSZ>.<拡張子>`)。出力先は元ファイルと同じディレクトリ |
-| bundle_name(job_name, target_name, period_key, format) -> PathBuf | バンドル圧縮の命名規則を実装(FR-2: `<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`)。出力先はそのターゲットの`basedir`直下。ターゲット名を含めるのは、同一ジョブ内の複数ターゲットが同じ期間キーで別々にバンドルを作った際の名前衝突を避けるため |
+| bundle_name(archive_name, target_name, period_key, format) -> PathBuf | バンドル圧縮の命名規則を実装(FR-2: `<archive名>.<ターゲット名>.<期間キー>.tar.gz`、2026-08-02改訂で`job_name`から`archive_name`(`ArchiveConfig.name`)に変更)。出力先はそのターゲットの`basedir`直下。ターゲット名を含めるのは、同一archiveエントリ内の複数ターゲットが同じ期間キーで別々にバンドルを作った際の名前衝突を避けるため |
 
 ### BundleKey
 | メソッド | 説明 |

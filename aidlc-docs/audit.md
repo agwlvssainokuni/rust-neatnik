@@ -591,3 +591,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design改訂完了。ユーザー承認待ち。
 
 ---
+
+## Functional Design再改訂: JobConfigの役割再定義とstagesリスト化
+**Timestamp**: 2026-08-02T02:15:00Z
+**User Input**: "targetsをarchive, relocate, deleteに移動したということは、jobs(JobConfig)の層が不要になったのではないでしょうか。パイプラインとして束ねる意味はなくなりましたし。" → "ロックスコープというのは説得力があります...ちなみに、ロックファイルは設定ファイルと同じディレクトリに作るのでしたよね？あと、JobConfigの中身はarchive, relocate, deleteは順不同、かつ、それぞれ0回以上(複数可)書けて良いのだと思います。" → "いいえ、delete, archive, relocate, archive のように並べる順番も変えてOKと考えています(もちろん書いた順に動く)。" → "enabled: boolは廃止でOKでしょう。あと、バンドル命名の衝突リスクについては利用者の責任でOKだと思います。また、JobConfigの層の役割がロックスコープになったので、バンドル名からjob名を外して、archiveの中に必須で書くので良いと思います。"
+**AI Response**: 対話を通じて以下に合意: (1) `JobConfig`はtargetsの入れ物としての役割を失ったが、ロックスコープ(BR-16)としての役割は独立して残るため撤廃しない。(2) BR-1(N1<=N2<=N3の閾値整合性チェック)はtargetsが無関係な以上意味を持たないため撤回。(3) `JobConfig`の中身を「archive/relocate/deleteをそれぞれ0か1個」から「ステージエントリを任意個・任意の順序で並べたリスト`stages`」に一般化し、書かれた順序どおりに実行する。(4) `enabled: bool`を廃止しリストへの記載有無で有効/無効を表現。(5) バンドル命名の`job名`を廃止し`ArchiveConfig.name`(新規必須フィールド)に置き換え、衝突リスクは利用者の責任とする(BR-17と同様)。(6) セーフティブレーキ(BR-13)の評価単位をジョブ全体からdeleteエントリ単位に変更。ロックファイルの場所(設定ファイルと同じディレクトリ、`.{job名}.lock`)は変更なしであることを確認。`requirements.md`(FR-5/FR-6/FR-7/FR-2改訂)、`domain-entities.md`(JobConfig/StageConfig再定義)、`business-rules.md`(BR-1撤回、BR-2/BR-2.1/BR-8/BR-9/BR-13改訂)、`business-logic-model.md`(1〜4章・7章改訂)、`neatnik-cli-functional-design-plan.md`(改訂履歴追記)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design再改訂完了。ユーザー承認待ち。
+
+---

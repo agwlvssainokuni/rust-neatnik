@@ -140,3 +140,17 @@ Code Generation・Build and Testが完了しv0.1.1をリリースした後、単
 3. さらに、旧設計(`WatchTarget`をジョブ直下で3ステージ共有)では、猶予日数を離した定常運用でrelocateが別実行で完了した場合、deleteが退避先ディレクトリを独立にスキャンする手段がなく永久に発動しないという、より深刻な潜在バグが判明
 
 ユーザーとの対話を経て、「archive/relocate/deleteそれぞれが独立した`targets`を持つ」設計への変更で合意。上記3つの不具合を構造的に解消する。この改訂は新たな[Answer]質問サイクルを設けず、対話内容に基づき`domain-entities.md`/`business-rules.md`(BR-2.1新規、BR-6・BR-9改訂)/`business-logic-model.md`(2〜4章全面改訂)を直接更新した。requirements.md FR-1にも改訂注記を追加済み。詳細はaidlc-docs/audit.mdの該当エントリを参照。
+
+---
+
+## 改訂(2026-08-02、2回目): JobConfigの役割再定義とstagesリスト化
+
+上記1回目の改訂の完了メッセージ提示後、ユーザーから「targetsをステージ毎に分離した以上、JobConfig(ジョブ)の層自体が不要ではないか」という指摘を受け、対話を継続した。結論は以下の通り:
+
+1. `JobConfig`は「targetsの入れ物」としての役割は失ったが、「**ロックスコープ(BR-16)**」としての役割は独立して残る(BR-1の閾値整合性チェックは、targetsが無関係な以上意味を持たないため撤回)
+2. `JobConfig`の中身は、archive/relocate/deleteをそれぞれ0か1個ではなく、**ステージエントリ(archive/relocate/deleteのいずれか)を任意個・任意の順序で並べたリスト`stages`**とする。書かれた順序どおりに実行する(並べ替えは行わない)
+3. `enabled: bool`は廃止。リストへの記載有無で有効/無効を表現する
+4. バンドル命名の衝突回避に使っていた`job名`は、ジョブの役割がロックスコープのみになったため廃止し、`ArchiveConfig.name`(新規必須フィールド)に置き換えた。同一job内外を問わず、archiveエントリ間で偶然名前が重複した場合の衝突は利用者の責任とする(BR-17と同様)
+5. セーフティブレーキ(BR-13)の評価単位は、ジョブ全体から**deleteエントリ単位**に変更した
+
+本改訂も新たな[Answer]質問サイクルを設けず、対話内容に基づき`requirements.md`(FR-5/FR-6/FR-7/FR-2改訂)、`domain-entities.md`(JobConfig/StageConfig再定義)、`business-rules.md`(BR-1撤回、BR-2/BR-2.1/BR-8/BR-9/BR-13改訂)、`business-logic-model.md`(1〜4章・7章改訂)を直接更新した。詳細はaidlc-docs/audit.mdの該当エントリを参照。
