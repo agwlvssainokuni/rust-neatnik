@@ -85,3 +85,11 @@
 **Context**: INCEPTION PHASE - Workflow Planning Step 7-9。承認待ち。
 
 ---
+
+## Requirements Analysis - 要件への立ち戻り: アーキテクチャ方針とコピー属性
+**Timestamp**: 2026-08-01T14:55:00Z
+**User Input**: "少し要件定義に立ち帰ります。CLIをビルドすることがメインターゲットではありますが、ライブラリとして提供できるような部品ってありますかね？" → (AIの提案に対して)"OKその方針とします。あと、退避の時のコピーは「cp -p」相当と思って良いですか？" → (AIの分析に対して)"OKです。"
+**AI Response**: (1)Rust定石のlib+bin構成を提案し、書き込み中ファイル検出・アトミック書き込み・経過日数ベースのファイル走査・退避・削除セーフティブレーキを再利用性の高い部品候補として提示。requirements.mdに「2.1 アーキテクチャ方針」として追記。(2)退避時のコピー属性について、mtimeは基準日時保持のため必須、パーミッションは推奨、所有者・グループは要件としない、という方針を提案し合意を得た。FR-3に反映。
+**Context**: INCEPTION PHASE - Requirements Analysis、Workflow Planning承認前の要件追加検討。requirements.md更新。Workflow Planning(execution-plan.md)は影響を受けないため再承認は不要と判断。
+
+---
