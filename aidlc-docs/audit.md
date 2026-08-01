@@ -438,3 +438,27 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 17(ビルド設定)完了。Code Generation全体が完了、Build and Testステージへの移行準備が整った。
 
 ---
+
+## Code Generation 完了メッセージ提示
+**Timestamp**: 2026-08-01T22:09:00Z
+**User Input**: (なし)
+**AI Response**: code-generation.md Step 14の標準形式(完了アナウンス+AIサマリ+レビュー依頼+2択の次アクション)でCode Generation完了メッセージをユーザーに提示。承認待ち。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2完了、ユーザー承認待ち(Request Changes / Continue to Next Stage)。
+
+---
+
+## デモ作成依頼(承認待ちと並行する補助タスク)
+**Timestamp**: 2026-08-01T22:35:00Z
+**User Input**: "neatnikでハウスキーピングする様子のデモって作れますか？"
+**AI Response**: リリースビルドを用い、経過日数の異なる4ファイル(2日/10日/40日/400日)を一時領域に用意し、`validate`→`run --dry-run`→`run`の順で実行してカスケード処理(archive→relocate→delete)を実演。結果をユーザーに提示し、リポジトリへの恒久化を提案。
+**Context**: 承認待ちと並行する補助タスク(AI-DLCフェーズ外)。
+
+---
+
+## デモのリポジトリ恒久化
+**Timestamp**: 2026-08-01T22:42:00Z
+**User Input**: "リポジトリに作成してください。また、一時領域ではなく、このプロジェクトディレクトリ内でハウスキーピングが進むようにしてください。"
+**AI Response**: `demo/run-demo.sh`(ライセンスヘッダー付き、BSD/GNU両dateコマンド対応)と`demo/README.md`を作成。生成物(`demo/workspace/`配下のlogs/storage/config.yaml)はプロジェクトディレクトリ内に作られるが、`.gitignore`に`/demo/workspace/`を追加し再実行のたびにリセットされる設計とした。実行して同じ結果(archived 3, relocated 2, deleted 1)が再現することを確認。
+**Context**: 承認待ちと並行する補助タスク(AI-DLCフェーズ外)。デモはCode Generation計画外の追加物のため、既存の17ステップの計画には含めない。
+
+---
