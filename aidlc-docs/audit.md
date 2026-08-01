@@ -495,3 +495,19 @@
 **Context**: CONSTRUCTION PHASE - Build and Testステージ、指示書生成・実行完了、ユーザー承認待ち。
 
 ---
+
+## GitHub Release対応の追加依頼
+**Timestamp**: 2026-08-01T23:18:00Z
+**User Input**: "GitHub Releaseに対応させたい。"
+**AI Response**: トリガー方式(タグpush/手動/両方)と対象プラットフォームをAskUserQuestionで確認。回答: 両方のトリガー、Linux/macOS(x86_64+aarch64)/Windows全対応。`.github/workflows/release.yml`を作成開始。
+**Context**: Build and Testステージの承認待ちと並行する追加機能要望(AI-DLCフェーズ外の軽量な追加)。
+
+---
+
+## GitHub Release対応の方針修正
+**Timestamp**: 2026-08-01T23:21:00Z
+**User Input**: "やっぱ手動はなし。あとタグとtomlのversionがズレていたら失敗させて。"
+**AI Response**: `workflow_dispatch`(手動トリガー)を削除し、タグpush(`v*.*.*`)のみに変更。`check-version`ジョブを追加し、pushされたタグと`Cargo.toml`の`version`が一致しない場合はビルド前に失敗するようにした。YAML構文とバージョン比較ロジックをローカルで検証済み。README.mdにリリース手順を追記。
+**Context**: GitHub Release対応(`.github/workflows/release.yml`)完了。
+
+---

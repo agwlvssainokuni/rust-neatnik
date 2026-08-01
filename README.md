@@ -92,6 +92,17 @@ cargo clippy --all-targets
 cargo fmt
 ```
 
+## リリース
+
+`main`ブランチで`Cargo.toml`の`version`を更新し、同じバージョンの`vX.Y.Z`タグをpushすると、GitHub Actions(`.github/workflows/release.yml`)がLinux(x86_64)/macOS(x86_64, aarch64)/Windows(x86_64)向けのリリースビルドを作成し、GitHub Releaseにバイナリを添付します。
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+タグのバージョンと`Cargo.toml`の`version`が一致しない場合、ワークフローは(ビルドを行わずに)失敗します。手動でのワークフロー起動には対応していません(タグpushのみがトリガーです)。
+
 ## ライセンス
 
 Apache License, Version 2.0. 詳細は[LICENSE](./LICENSE)を参照してください。
