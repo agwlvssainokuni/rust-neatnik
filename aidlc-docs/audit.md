@@ -155,3 +155,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design Step 2-4。ユーザー回答待ち。
 
 ---
+
+## Functional Design - B2確定: アーカイブファイル名タイムスタンプの基準を明確化
+**Timestamp**: 2026-08-01T15:50:00Z
+**User Input**: "質問です。B2について、AI推奨のAとした場合、keep_original: true でエラーにならないケースってありますか？" → (AIの分析に対して)"理解しました。圧縮したファイル名のタイムスタンプをmtimeベースにした(要件の何番でしたっけ？)ことで、こういう非対称性が生じているのですね。"
+**AI Response**: B2の推奨案Aを精緻化: 単体ファイル圧縮(bundle: none)はアーカイブファイル名を元ファイルのmtime由来の決定的な命名にすることで`keep_original: true`を許可し、バンドル圧縮(daily/weekly/monthly)は`keep_original: true`との組み合わせを引き続き禁止する、という非対称なルールで確定。「mtimeベースの命名」はこれまで要件化されていなかった新規決定であることを説明し、requirements.md FR-2に明記。functional-design-planのB2に回答を記録。
+**Context**: CONSTRUCTION PHASE - Functional Design Step 2-4(続き)。requirements.md・functional-design-plan.md更新。他の質問(A1-A3, B1, C1)は回答待ち。
+
+---

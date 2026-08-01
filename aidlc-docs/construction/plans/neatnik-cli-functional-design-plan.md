@@ -98,7 +98,11 @@ D) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — 冪等性設計(FR-9)をシンプルな存在チェックベースに保つため、そもそも相性の悪い組み合わせを設定バリデーションで防ぐのが最もクリーン
 
-[Answer]:
+**議論の結果、Aを以下のように精緻化して確定**:
+- **単体ファイル圧縮(`bundle: none`)**: `keep_original: true`を許可する。ただしアーカイブファイル名のタイムスタンプは元ファイル自身の基準日時由来とする(requirements.md FR-2に追記済み)ことで、既存の存在チェックベースの冪等性がそのまま機能する
+- **バンドル圧縮(`daily`/`weekly`/`monthly`)**: `keep_original: true`との組み合わせは引き続き禁止する(`validate`でエラー)。バンドルは「存在する/しない」の粒度でしか判定できず、個々のファイルがバンドルに含まれているかを正確に判定できないため
+
+[Answer]: 上記の通り(bundle: noneはmtimeベースの決定的命名で許可、daily/weekly/monthlyバンドルは禁止)
 
 ---
 
