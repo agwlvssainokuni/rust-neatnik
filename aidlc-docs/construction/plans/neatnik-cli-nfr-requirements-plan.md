@@ -5,8 +5,8 @@
 - [x] requirements.mdのNFR-1〜NFR-PBT、拡張機能設定(Security=Yes, PBT=Partial, Resiliency=No)を確認
 
 ## Step 2: 評価対象
-- [ ] 技術スタック(依存クレート)の確定 — `tech-stack-decisions.md`
-- [ ] NFR要件の確定(パフォーマンス・可用性・セキュリティ・信頼性・保守性) — `nfr-requirements.md`
+- [x] 技術スタック(依存クレート)の確定 — `tech-stack-decisions.md`
+- [x] NFR要件の確定(パフォーマンス・可用性・セキュリティ・信頼性・保守性) — `nfr-requirements.md`
 
 ## Step 3: 質問(下記の[Answer]タグに回答してください)
 
