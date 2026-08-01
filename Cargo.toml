@@ -1,0 +1,43 @@
+[package]
+name = "neatnik"
+version = "0.1.0"
+edition = "2021"
+description = "Automated housekeeping (archive, relocate, delete) for log, working and temporary files."
+license = "Apache-2.0"
+
+[lib]
+name = "neatnik"
+path = "src/lib.rs"
+
+[[bin]]
+name = "neatnik"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+serde = { version = "1", features = ["derive"] }
+serde_norway = "0.9"
+walkdir = "2"
+glob = "0.3"
+flate2 = "1"
+tar = "0.4"
+zip = "2"
+fd-lock = "4"
+regex = "1"
+chrono = "0.4"
+chrono-tz = "0.10"
+iana-time-zone = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+anyhow = "1"
+thiserror = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+proptest = "1"
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"

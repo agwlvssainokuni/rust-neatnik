@@ -14,11 +14,11 @@
 ## Steps
 
 ### Step 1: Project Structure Setup
-- [ ] `Cargo.toml`作成(lib+binターゲット、tech-stack-decisions.mdの依存クレート一覧を反映)
-- [ ] `src/lib.rs`(公開モジュール宣言)、`src/main.rs`(スケルトン)を作成
-- [ ] `src/config.rs`, `src/clock.rs`, `src/scan.rs`, `src/archive.rs`, `src/relocate.rs`, `src/delete.rs`, `src/lock.rs`, `src/notify.rs`, `src/error.rs`, `src/pipeline.rs`の空モジュールファイルを作成
-- [ ] `deny.toml`(cargo-deny設定)を作成
-- [ ] `rustfmt.toml`を作成(デフォルト設定+明示化)
+- [x] `Cargo.toml`作成(lib+binターゲット、tech-stack-decisions.mdの依存クレート一覧を反映)
+- [x] `src/lib.rs`(公開モジュール宣言)、`src/main.rs`(スケルトン)を作成
+- [x] `src/config.rs`, `src/clock.rs`, `src/scan.rs`, `src/archive.rs`, `src/relocate.rs`, `src/delete.rs`, `src/lock.rs`, `src/notify.rs`, `src/error.rs`, `src/pipeline.rs`の空モジュールファイルを作成
+- [x] `deny.toml`(cargo-deny設定)を作成
+- [x] `rustfmt.toml`を作成(デフォルト設定+明示化)
 
 ### Step 2: error モジュール
 - [ ] `thiserror`ベースのドメインエラー型を実装(各モジュール共通のエラー分類)
