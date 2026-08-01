@@ -55,9 +55,10 @@
 - [x] 単体テスト
 
 ### Step 8: delete モジュール
-- [ ] 削除実行、`SafetyBrakeConfig`の閾値判定(BR-13)
-- [ ] dry-runモード(BR-14)
-- [ ] 単体テスト
+- [x] 削除実行、`SafetyBrakeConfig`の閾値判定(BR-13)
+- [x] dry-runモード(BR-14)
+- [x] 単体テスト
+- **既知の制約**: BR-13後半の「enforce発動後、人手解除まで次回実行も止め続ける」永続ロックは、具体的な形式・解除コマンドが未確定のため未実装(コード内に明記)。Build and Testまたは今後の要件確認で扱いを決める
 
 ### Step 9: lock モジュール
 - [ ] `JobLock`トレイトと`fd-lock`ベースの実装(BR-16)

@@ -358,3 +358,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 7(relocate モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 8完了(既知の制約あり)
+**Timestamp**: 2026-08-01T19:32:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/delete.rs`に`evaluate_safety_brake`(BR-13の件数・容量閾値の純粋関数評価)と`run()`(閾値判定→ブロック/dry-run/実削除の分岐)を実装。単体テスト6件+proptest1件(閾値未超過時は常に件数<=threshold というInvariant)を追加。**既知の制約**: BR-13後半「`enforce: true`発動後、人手でロック解除するまで次回実行も自動的に止め続ける」永続的な状態保持は、具体的なロックファイル形式・解除コマンドがFunctional/NFR Designで未確定のため本ステップでは未実装(コード上にもコメントで明記)。現状は実行のたびに閾値を再評価する動作に留まる。`cargo test --lib`(58件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 8(delete モジュール)完了。BR-13後半の永続ブレーキ機構は要件差し戻しの可能性あり、ユーザーへの完了報告時に明示する。
+
+---
