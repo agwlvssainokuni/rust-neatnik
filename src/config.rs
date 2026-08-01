@@ -78,81 +78,6 @@ pub enum StageConfig {
     Delete(DeleteConfig),
 }
 
-/// 1つの監視対象ディレクトリとそのパターン(FR-1)。archive/relocate/deleteの各エントリが
-/// 自身の`targets`として個別に持つ。
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct WatchTarget {
-    pub basedir: PathBuf,
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub include: Vec<String>,
-    #[serde(default)]
-    pub exclude: Vec<String>,
-    #[serde(default)]
-    pub basis: BasisKind,
-    #[serde(default)]
-    pub filename_date_rules: Vec<FilenameDateRule>,
-}
-
-impl WatchTarget {
-    /// `name`省略時、`basedir`から識別子を自動導出する(例: `/var/log/app` -> `var-log-app`)。バンドル命名の衝突回避に使う
-    pub fn resolved_name(&self) -> String {
-        match &self.name {
-            Some(name) => name.clone(),
-            None => derive_target_name(&self.basedir),
-        }
-    }
-
-    /// `basedir`を正規化する(NFR-Design: パストラバーサル対策の起点)。
-    pub fn canonical_basedir(&self, job_name: &str) -> Result<PathBuf, ConfigError> {
-        self.basedir
-            .canonicalize()
-            .map_err(|source| ConfigError::Invalid {
-                job: job_name.to_string(),
-                reason: format!(
-                    "basedir \"{}\" is not accessible: {source}",
-                    self.basedir.display()
-                ),
-            })
-    }
-}
-
-fn derive_target_name(basedir: &Path) -> String {
-    let normalized = basedir.to_string_lossy().replace('\\', "/");
-    let trimmed = normalized.trim_start_matches('/').trim_end_matches('/');
-    if trimmed.is_empty() {
-        "root".to_string()
-    } else {
-        trimmed.replace('/', "-")
-    }
-}
-
-/// 正規化済み`basedir`の配下に正規化済み`candidate`が収まっているかを検証する(パストラバーサル対策)。
-pub fn is_within_basedir(basedir: &Path, candidate: &Path) -> bool {
-    candidate.starts_with(basedir)
-}
-
-/// `basis: FilenameDate`における日付抽出ルール1件(BR-7.1)。
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct FilenameDateRule {
-    pub regex: String,
-    pub format: String,
-}
-
-/// 基準日時の情報源。`Ctime`は削除済み(2026-08-02): archive/relocateがmtime継承(BR-9)のために
-/// 出力ファイルのmtimeを明示的に設定する操作は、OS仕様上ctimeを「今」にリセットする副作用を
-/// 伴うため、一度でもarchive/relocateを経由したファイルではctime基準の経過日数計算が機能しない
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum BasisKind {
-    #[default]
-    Mtime,
-    FilenameDate,
-}
-
 /// アーカイブ段階の設定(FR-2)。
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(Default))]
@@ -248,6 +173,81 @@ pub struct SafetyBrakeConfig {
     pub enforce: bool,
     pub count_threshold: Option<u64>,
     pub size_threshold_gb: Option<f64>,
+}
+
+/// 1つの監視対象ディレクトリとそのパターン(FR-1)。archive/relocate/deleteの各エントリが
+/// 自身の`targets`として個別に持つ。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WatchTarget {
+    pub basedir: PathBuf,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub include: Vec<String>,
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    #[serde(default)]
+    pub basis: BasisKind,
+    #[serde(default)]
+    pub filename_date_rules: Vec<FilenameDateRule>,
+}
+
+impl WatchTarget {
+    /// `name`省略時、`basedir`から識別子を自動導出する(例: `/var/log/app` -> `var-log-app`)。バンドル命名の衝突回避に使う
+    pub fn resolved_name(&self) -> String {
+        match &self.name {
+            Some(name) => name.clone(),
+            None => derive_target_name(&self.basedir),
+        }
+    }
+
+    /// `basedir`を正規化する(NFR-Design: パストラバーサル対策の起点)。
+    pub fn canonical_basedir(&self, job_name: &str) -> Result<PathBuf, ConfigError> {
+        self.basedir
+            .canonicalize()
+            .map_err(|source| ConfigError::Invalid {
+                job: job_name.to_string(),
+                reason: format!(
+                    "basedir \"{}\" is not accessible: {source}",
+                    self.basedir.display()
+                ),
+            })
+    }
+}
+
+fn derive_target_name(basedir: &Path) -> String {
+    let normalized = basedir.to_string_lossy().replace('\\', "/");
+    let trimmed = normalized.trim_start_matches('/').trim_end_matches('/');
+    if trimmed.is_empty() {
+        "root".to_string()
+    } else {
+        trimmed.replace('/', "-")
+    }
+}
+
+/// 正規化済み`basedir`の配下に正規化済み`candidate`が収まっているかを検証する(パストラバーサル対策)。
+pub fn is_within_basedir(basedir: &Path, candidate: &Path) -> bool {
+    candidate.starts_with(basedir)
+}
+
+/// `basis: FilenameDate`における日付抽出ルール1件(BR-7.1)。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FilenameDateRule {
+    pub regex: String,
+    pub format: String,
+}
+
+/// 基準日時の情報源。`Ctime`は削除済み(2026-08-02): archive/relocateがmtime継承(BR-9)のために
+/// 出力ファイルのmtimeを明示的に設定する操作は、OS仕様上ctimeを「今」にリセットする副作用を
+/// 伴うため、一度でもarchive/relocateを経由したファイルではctime基準の経過日数計算が機能しない
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BasisKind {
+    #[default]
+    Mtime,
+    FilenameDate,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
