@@ -21,7 +21,7 @@
 - [x] `rustfmt.toml`を作成(デフォルト設定+明示化)
 
 ### Step 2: error モジュール
-- [ ] `thiserror`ベースのドメインエラー型を実装(各モジュール共通のエラー分類)
+- [x] `thiserror`ベースのドメインエラー型を実装(各モジュール共通のエラー分類)
 
 ### Step 3: clock モジュール
 - [ ] `Clock`トレイト、`SystemClock`、`FixedClock`(`--now`用、FR-13)を実装
