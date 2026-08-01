@@ -46,3 +46,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis Step 7/8/9。承認待ち。
 
 ---
+
+## Requirements Analysis - Request Changes: 3点の指摘
+**Timestamp**: 2026-08-01T14:15:00Z
+**User Input**: "要件について相談したい。削除も「オプション、スキップ可」ではなかろうか。あと、図中の「経過N2日」「経過N3日」は、処理の間の日数ではなく通常量いきからの経過日数ですよね？また、レアケースだとは思いますが、N1, N2, N3 の関係は N1<=N2<=N3 を許容したいです。"
+**AI Response**: 3点とも妥当な指摘と判断し反映。(1)削除ステージもアーカイブ・退避と同様に有効/無効化(スキップ)可能とし、FR-4/FR-5/決定事項サマリ(C6追加)を更新。(2)ステージ間の矢印ラベルを「経過 N1日」等の曖昧な表現から「基準日時から N1日経過」に修正し、N1/N2/N3が基準日時からの累積経過日数であって前段ステージからの相対日数ではない旨を明記する注記を追加。(3)N1<N2<N3の等号を許容する形(N1<=N2<=N3)に緩和し、等号設定時の同一実行内での処理順序の相互作用はFunctional Designステージで検討する旨を追記。全ステージ無効化時の扱い(validateで警告/エラーとするか)もFunctional Design検討事項として追記。
+**Context**: INCEPTION PHASE - Requirements Analysis、Request Changes対応。requirements.md更新。再承認待ち。
+
+---
