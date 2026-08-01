@@ -414,3 +414,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 14(プロパティベーステスト整備)完了。PBT-02/03/07/08/09の全ブロッキング項目に対応。
 
 ---
+
+## Code Generation Part 2 - Step 15完了
+**Timestamp**: 2026-08-01T22:00:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `tests/cli.rs`に`assert_cmd`/`predicates`/`tempfile`によるCLI統合テスト14件を実装。引数なし実行時のウェルカムガイド表示、`init`でのファイル生成/上書き拒否/`--force`上書き、`validate`の成功/失敗(設定ファイル不在時のBR-5案内、`--now`形式エラー)、`list`のジョブ一覧表示、`run --dry-run`(ファイル不変更を確認)、`run`(実ファイルでの一括カスケード完走)、`--now`オーバーライド(正常系/異常系)、`completions`、`--version`を網羅。`cargo test`(lib 73件+統合14件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 15(CLI統合テスト)完了。
+
+---

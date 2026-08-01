@@ -92,7 +92,7 @@
 - [x] PBT-02(往復性)/PBT-03(不変条件)対象箇所(business-rules.md 8章)のテストを実装 — 往復性2件(archive圧縮/解凍、FilenameDateRule抽出)を新規追加、不変条件はStep 4/7/8で対応済み
 
 ### Step 15: CLI統合テスト
-- [ ] `assert_cmd`/`predicates`/`tempfile`による統合テスト: `init`でのファイル生成、`validate`の成功/失敗、`run --dry-run`、`--now`オーバーライド、引数なし実行時のガイド表示
+- [x] `assert_cmd`/`predicates`/`tempfile`による統合テスト: `init`でのファイル生成、`validate`の成功/失敗、`run --dry-run`、`--now`オーバーライド、引数なし実行時のガイド表示(14件、`tests/cli.rs`)
 
 ### Step 16: ドキュメント生成
 - [ ] `README.md`(概要、インストール、クイックスタート、コマンド一覧)を作成
