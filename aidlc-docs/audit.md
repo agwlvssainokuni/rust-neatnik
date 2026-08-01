@@ -218,3 +218,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design、承認前の確認(続き)。domain-entities.mdを更新。
 
 ---
+
+## Functional Design - FilenameDateRuleの照合対象をbasenameに限定
+**Timestamp**: 2026-08-01T17:50:00Z
+**User Input**: "globでディレクトリ階層を含んだscanをサポートすると理解しています。この場合、正規表現に渡されるのはファイル名のみでしょうか。それとも階層も含んだ名前でしょうか。" → "OKです。"
+**AI Response**: `FilenameDateRule.regex`は常にファイルのbasename(ディレクトリ階層を除いた部分)にのみ照合することを提案・確定。ディレクトリ名に日付が埋め込まれたレイアウトはスコープ外とし、その場合は`basis: Mtime`/`Ctime`を使う方針とした。domain-entities.md、business-rules.md(BR-7.1)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design、承認前の確認(続き)。domain-entities.md・business-rules.mdを更新。
+
+---
