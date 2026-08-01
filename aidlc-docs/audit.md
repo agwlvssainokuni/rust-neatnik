@@ -54,3 +54,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、Request Changes対応。requirements.md更新。再承認待ち。
 
 ---
+
+## Requirements Analysis - 補足: 等号設定時の挙動確定
+**Timestamp**: 2026-08-01T14:30:00Z
+**User Input**: "統合許容について補足コメントです。アーカイブしてすぐに退避する、という動作を許容します。同様に、退避してすぐ削除も許容します。"
+**AI Response**: FR-5の該当箇所を更新し、N1=N2やN2=N3等の等号設定時に「単一実行内で直前ステージの処理結果が続けて次段ステージでも処理される」ことを要件として明記(Functional Design検討事項から確定要件へ変更)。
+**Context**: INCEPTION PHASE - Requirements Analysis、Request Changes対応(続き)。requirements.md更新。再承認待ち。
+
+---
