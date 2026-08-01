@@ -186,3 +186,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design Step 6完了。ユーザー承認待ち。
 
 ---
+
+## Functional Design - B2再検討: バンドル×keep_original許可への変更
+**Timestamp**: 2026-08-01T17:00:00Z
+**User Input**: "plan のB2についてもう一度。バンドルかつkeep_original: trueをNGにしなくても良いような気がする。元ファイルが残っていても、バンドルのmtimeを見れば、元ファイルに更新があったか(アーカイブ作成後に更新があったか)を検知できる。アーカイブ作成後に元ファイルが更新された場合、警告にするのかエラーにするのかは要検討(設定でも良いかも)。" → (AIがロック中スキップのエッジケースを指摘したことに対し)"このツールの特性として、当日分のファイルを対象とするケースは極めて稀と考えます...前日以前の分のファイルが「ロックされている」というのは、事実上発生しないのではないでしょうか。" → "OKです。"
+**AI Response**: ユーザー提案(mtime比較によるバンドル冪等性判定)を採用。バンドル+`keep_original: true`の禁止(旧B2決定)を撤回し、許可に変更。対象ファイルmtime <= 既存バンドルmtimeならスキップ、それより新しければ`on_stale_bundle_member`設定(warn/error、デフォルトwarn)で記録する方式で確定。AIが指摘した「ロック中スキップされたファイルが誤って除外扱いされる」エッジケースについて、N1猶予日数を経過した古いファイルが書き込みロック中であることは実務上ほぼ発生しないというユーザーの説明を受けて、無視できるリスクと判断。business-rules.md(BR-3, PBT表)、domain-entities.md(ArchiveConfig)、business-logic-model.md(バンドル処理単位)、functional-design-plan.md(B2回答)を更新。
+**Context**: CONSTRUCTION PHASE - Functional Design、承認前の設計見直し。成果物3ファイル・計画書を更新。
+
+---

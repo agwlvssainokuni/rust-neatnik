@@ -25,7 +25,8 @@
 | format | ArchiveFormat(Gzip\|Zip\|TarGz) | 圧縮形式(FR-2) |
 | bundle | BundleKind(None\|Daily\|Weekly\|Monthly) | まとめ方針(FR-2) |
 | bundle_timezone | Timezone | バンドル期間境界の計算に使うタイムゾーン(FD-B1) |
-| keep_original | bool | 圧縮後に元ファイルを残すか(デフォルトfalse)。`bundle != None`の場合`true`はvalidateエラー(FD-B2) |
+| keep_original | bool | 圧縮後に元ファイルを残すか(デフォルトfalse)。`bundle`の値に関わらず許可する(FD-B2、2回目の見直し)。バンドル圧縮時の冪等性はmtime比較方式(BR-3)で担保する |
+| on_stale_bundle_member | OnStaleBundleMember(Warn\|Error) | バンドル対象ファイルのmtimeが既存バンドルのmtimeより新しい場合の挙動(BR-3)。デフォルトWarn |
 
 ### RelocateConfig
 | フィールド | 型 | 説明 |

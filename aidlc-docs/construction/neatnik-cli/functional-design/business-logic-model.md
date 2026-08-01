@@ -99,7 +99,7 @@ if job.delete.enabled and (now - current.basis_datetime) >= N3:
 
 **注記**:
 - `keep_original: true`かつ`bundle: none`の場合、元ファイルは削除されないため、次回実行時も基準日時が変わらず同じ判定を繰り返す。命名規則(BR-8)により生成される名前は決定的なので、既存の宛先が見つかり再処理はスキップされる(冪等性)
-- `bundle`が`daily`/`weekly`/`monthly`の場合、`keep_original: true`はvalidateで拒否済み(BR-3)のため、このパイプラインには到達しない
+- `keep_original: true`かつ`bundle: daily/weekly/monthly`の場合は、下記4章のバンドル処理単位における冪等性判定(mtime比較、BR-3)に従う
 
 ## 4. バンドル圧縮時の処理単位の違い
 
@@ -108,11 +108,15 @@ if job.delete.enabled and (now - current.basis_datetime) >= N3:
 ```
 1. スキャンで得た候補のうち、アーカイブ条件(N1経過)を満たすものを抽出
 2. 各候補の基準日時から BundleKey.compute() で期間キーを算出し、期間キーごとにグルーピング (BR-10)
-3. グループごとに1つのアーカイブファイルを生成する
-   - 命名: ArchiveNamer.bundle_name(job_name, period_key, format) (BR-8)
-   - mtime: グループ内の基準日時の最大値を採用 (BR-9)
-4. 生成されたバンドルアーカイブ1件を、以降の退避・削除パイプラインにおける
-   「1つのFileCandidate」として扱う(基準日時 = 上記で採用した最大値)
+3. 期間キーに対応する既存バンドルファイル(ArchiveNamer.bundle_name)が存在するか確認する
+   - 存在しない場合: グループ内の全候補で新規バンドルを作成する
+   - 存在する場合(keep_original: true運用で再実行されたケース): グループ内の各候補について、
+     candidate.basis_datetime <= 既存バンドルのmtime か比較する (BR-3)
+       - 真: 既に含まれているとみなしスキップする(冪等)
+       - 偽: on_stale_bundle_member設定(warn/error)に従って記録する。ファイル・
+             既存バンドルには手を加えない(バンドルへの追記は行わない)
+4. 新規作成 or 既存のバンドルアーカイブ1件を、以降の退避・削除パイプラインにおける
+   「1つのFileCandidate」として扱う(基準日時 = グループ内の基準日時の最大値、BR-9)
 ```
 
 ## 5. エラーハンドリング(詳細化)
