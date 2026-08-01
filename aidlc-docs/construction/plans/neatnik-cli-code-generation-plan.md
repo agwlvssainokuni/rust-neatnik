@@ -24,8 +24,8 @@
 - [x] `thiserror`ベースのドメインエラー型を実装(各モジュール共通のエラー分類)
 
 ### Step 3: clock モジュール
-- [ ] `Clock`トレイト、`SystemClock`、`FixedClock`(`--now`用、FR-13)を実装
-- [ ] 単体テスト
+- [x] `Clock`トレイト、`SystemClock`、`FixedClock`(`--now`用、FR-13)を実装
+- [x] 単体テスト
 
 ### Step 4: config モジュール
 - [ ] `JobConfig`, `WatchTarget`, `ArchiveConfig`, `RelocateConfig`, `DeleteConfig`, `SafetyBrakeConfig`, `FilenameDateRule`を実装(domain-entities.md)
