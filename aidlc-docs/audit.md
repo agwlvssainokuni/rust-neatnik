@@ -390,3 +390,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 11(pipeline モジュール)完了。
 
 ---
+
+## Code Generation Part 2 - Step 12完了
+**Timestamp**: 2026-08-01T21:53:00Z
+**User Input**: "再開してください"(前回の中断からの再開指示)
+**AI Response**: `src/main.rs`に`clap`ベースのCLIを実装。サブコマンド`run`/`validate`/`init`/`list`/`completions`(FR-6, FR-12)、共通オプション`--config`/`--now`(FR-13、RFC3339パース)、引数なし実行時のウェルカムガイド(FR-11)、`tracing-subscriber`のJSON出力初期化、グローバルエラーハンドラ(ユーザー向けには一般化メッセージ+tracing詳細記録、SECURITY-15)を実装。`neatnik init`が出力するサンプル設定として`config.example.yaml`を暫定作成し`include_str!`で埋め込んだ(Step 13で正式に整備・内容拡充予定)。実機ビルドし、引数なし/`init`/`validate`(basedir不在の検証エラー確認)/`list`/`completions`/`--version`/設定ファイル不在時のBR-5案内メッセージ/`run --dry-run`(ファイル不変更を確認)/`run`(実ファイルでのarchive→relocate→delete一括カスケード完走を確認)/`--now`オーバーライドの全経路を手動E2E確認した。`cargo test --lib`(71件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 12(CLI/main.rs)完了。
+
+---

@@ -76,11 +76,12 @@
 - **付随改修**: `archive::run_bundle`を`BundleGroupResult`に改修し、1グループの失敗が他グループを止めないようにした
 
 ### Step 12: CLI(bin/main.rs)
-- [ ] `clap`によるサブコマンド定義: `run`, `validate`, `init`, `list`, `completions`, `--version`(FR-6, FR-12)
-- [ ] 引数なし実行時のウェルカムガイド(FR-11)
-- [ ] `tracing`グローバルサブスクライバ初期化(JSON出力、NFR-3)
-- [ ] トップレベルエラーハンドリング・終了コード(NFR-Design 1章)
-- [ ] `--help`の充実(使用例を含む、FR-11)
+- [x] `clap`によるサブコマンド定義: `run`, `validate`, `init`, `list`, `completions`, `--version`(FR-6, FR-12)
+- [x] 引数なし実行時のウェルカムガイド(FR-11)
+- [x] `tracing`グローバルサブスクライバ初期化(JSON出力、NFR-3)
+- [x] トップレベルエラーハンドリング・終了コード(NFR-Design 1章)
+- [x] `--help`の充実(使用例を含む、FR-11)。`config.example.yaml`を暫定作成し`include_str!`で`init`に埋め込み(Step 13で正式整備)
+- 手動E2E確認: 全サブコマンド、BR-5案内、dry-run不変更、実ファイルでのカスケード完走、`--now`オーバーライド
 
 ### Step 13: config.example.yaml とinitテンプレート
 - [ ] コメント付きサンプル設定を単一のテンプレート文字列として実装し、リポジトリ同梱の`config.example.yaml`と`neatnik init`の出力の両方に使う(FR-11)
