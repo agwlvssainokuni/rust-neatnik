@@ -366,3 +366,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 8(delete モジュール)完了。BR-13後半の永続ブレーキ機構は要件差し戻しの可能性あり、ユーザーへの完了報告時に明示する。
 
 ---
+
+## Code Generation Part 2 - Step 9完了
+**Timestamp**: 2026-08-01T19:41:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: `src/lock.rs`に`JobLock`トレイトを実装。`acquire()->LockGuard`という所有権ベースの案(domain-entities.md)ではなく、`with_lock(job_name, closure)->Result<Option<T>>`というクロージャ方式に変更(fd-lockのガードがロック元に借用で紐づくため、所有権を返す設計より単純かつ安全。domain-entities.mdもRustの型はあくまで実装イメージの参考と明記済み)。`FileJobLock`(fd-lockベース、ロックファイルは`.{job_name}.lock`としてジョブごとに独立、FD-A3)を実装し、ロック取得済み時は`Ok(None)`を返してジョブをスキップする(BR-16、エラーにしない)。単体テスト4件を追加し、`cargo test --lib`(62件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 9(lock モジュール)完了。
+
+---
