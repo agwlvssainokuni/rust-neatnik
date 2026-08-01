@@ -667,15 +667,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn single_file_name_is_deterministic(
-            year in 2020i32..2030,
-            month in 1u32..13,
-            day in 1u32..28,
-            hour in 0u32..24,
-            minute in 0u32..60,
-            second in 0u32..60,
-        ) {
-            let basis = Utc.with_ymd_and_hms(year, month, day, hour, minute, second).unwrap();
+        fn single_file_name_is_deterministic(basis in crate::test_support::arb_utc_datetime()) {
             let path = Path::new("/data/app.log");
             let first = ArchiveNamer::single_file_name(path, basis, ArchiveFormat::Gzip);
             let second = ArchiveNamer::single_file_name(path, basis, ArchiveFormat::Gzip);
@@ -683,17 +675,68 @@ mod tests {
         }
 
         #[test]
-        fn bundle_key_compute_is_deterministic(
-            year in 2020i32..2030,
-            month in 1u32..13,
-            day in 1u32..28,
-            hour in 0u32..24,
-        ) {
-            let basis = Utc.with_ymd_and_hms(year, month, day, hour, 0, 0).unwrap();
+        fn bundle_key_compute_is_deterministic(basis in crate::test_support::arb_utc_datetime()) {
             let tz: Tz = "UTC".parse().unwrap();
             let first = BundleKey::compute(basis, BundleKind::Weekly, &tz);
             let second = BundleKey::compute(basis, BundleKind::Weekly, &tz);
             prop_assert_eq!(first, second);
+        }
+
+        /// PBT-02(往復性): 圧縮(gzip/zip/tar.gz)→解凍した内容が元のバイト列と一致する
+        #[test]
+        fn single_file_archive_round_trips_content(
+            content in crate::test_support::arb_file_bytes(),
+            basis in crate::test_support::arb_utc_datetime(),
+            format in prop_oneof![
+                Just(ArchiveFormat::Gzip),
+                Just(ArchiveFormat::Zip),
+                Just(ArchiveFormat::TarGz),
+            ],
+        ) {
+            let dir = tempdir().unwrap();
+            let source = dir.path().join("data.bin");
+            fs::write(&source, &content).unwrap();
+            let candidate = make_candidate(dir.path(), "t", source, basis);
+            let config = ArchiveConfig {
+                enabled: true,
+                format,
+                ..ArchiveConfig::default()
+            };
+
+            let result = run_single_file(&candidate, &config).unwrap();
+            let decoded = decode_archive(&result.destination, format);
+            prop_assert_eq!(decoded, content);
+        }
+    }
+
+    fn decode_archive(path: &Path, format: ArchiveFormat) -> Vec<u8> {
+        use std::io::Read;
+        match format {
+            ArchiveFormat::Gzip => {
+                let file = fs::File::open(path).unwrap();
+                let mut decoder = flate2::read::GzDecoder::new(file);
+                let mut buf = Vec::new();
+                decoder.read_to_end(&mut buf).unwrap();
+                buf
+            }
+            ArchiveFormat::Zip => {
+                let file = fs::File::open(path).unwrap();
+                let mut zip = zip::ZipArchive::new(file).unwrap();
+                let mut entry = zip.by_index(0).unwrap();
+                let mut buf = Vec::new();
+                entry.read_to_end(&mut buf).unwrap();
+                buf
+            }
+            ArchiveFormat::TarGz => {
+                let file = fs::File::open(path).unwrap();
+                let decoder = flate2::read::GzDecoder::new(file);
+                let mut archive = tar::Archive::new(decoder);
+                let mut entries = archive.entries().unwrap();
+                let mut entry = entries.next().unwrap().unwrap();
+                let mut buf = Vec::new();
+                entry.read_to_end(&mut buf).unwrap();
+                buf
+            }
         }
     }
 }

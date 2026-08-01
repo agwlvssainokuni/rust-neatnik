@@ -87,9 +87,9 @@
 - [x] コメント付きサンプル設定を単一のテンプレート文字列として実装し、リポジトリ同梱の`config.example.yaml`と`neatnik init`の出力の両方に使う(FR-11)。`include_str!`で埋め込み、出力が完全一致することを`diff`で確認済み
 
 ### Step 14: プロパティベーステストの整備
-- [ ] `proptest`のジェネレータ(ドメイン型用、PBT-07)を整備
-- [ ] シュリンク・シード再現性の確認(PBT-08、テスト実行時にseedをログ出力)
-- [ ] PBT-02(往復性)/PBT-03(不変条件)対象箇所(business-rules.md 8章)のテストを実装
+- [x] `proptest`のジェネレータ(ドメイン型用、PBT-07)を整備 — `src/test_support.rs`(`arb_utc_datetime`/`arb_file_bytes`)、既存proptestをリファクタして共通化
+- [x] シュリンク・シード再現性の確認(PBT-08) — proptestデフォルトの`proptest-regressions/`永続化機構を採用(`.gitignore`未除外を確認、追加実装不要)
+- [x] PBT-02(往復性)/PBT-03(不変条件)対象箇所(business-rules.md 8章)のテストを実装 — 往復性2件(archive圧縮/解凍、FilenameDateRule抽出)を新規追加、不変条件はStep 4/7/8で対応済み
 
 ### Step 15: CLI統合テスト
 - [ ] `assert_cmd`/`predicates`/`tempfile`による統合テスト: `init`でのファイル生成、`validate`の成功/失敗、`run --dry-run`、`--now`オーバーライド、引数なし実行時のガイド表示

@@ -406,3 +406,11 @@
 **Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 13(config.example.yaml/initテンプレート)完了。
 
 ---
+
+## Code Generation Part 2 - Step 14完了
+**Timestamp**: 2026-08-01T21:58:00Z
+**User Input**: (なし。前段の承認に基づく自律実行)
+**AI Response**: PBT-02/03/07/08/09(Partial適用でブロッキング)のコンプライアンスをCode Generation段階で確定。(1) PBT-07(ジェネレータ整備): `src/test_support.rs`(`#[cfg(test)]`)に共通の`arb_utc_datetime()`/`arb_file_bytes()`ストラテジを実装し、archive/relocateの既存proptestを重複コードから共通ジェネレータ利用へリファクタ。(2) PBT-02(往復性): 新たに2件追加 — archive.rsに単体ファイル圧縮(gzip/zip/tar.gz全形式)の圧縮→解凍で内容が一致することを検証するproptest、scan.rsにFilenameDateRuleの日付フォーマット→抽出の往復性を検証するproptest。(3) PBT-03(不変条件): 既存のBR-1/BR-11/BR-13向けproptestで対応済み(Step 4/7/8)。(4) PBT-08(シュリンク・シード再現性): `proptest`のデフォルト設定(`ProptestConfig::default`)がテストソースと並列に`proptest-regressions/`ディレクトリへ失敗ケースのシードを自動永続化する標準機能を採用しており、`.gitignore`で除外されていないことを確認(追加実装不要)。(5) PBT-09(フレームワーク選定): NFR Requirementsで対応済み。`cargo test --lib`(73件)・`cargo clippy --all-targets`で警告なし・全件成功を確認。
+**Context**: CONSTRUCTION PHASE - Code Generation Part 2 Step 14(プロパティベーステスト整備)完了。PBT-02/03/07/08/09の全ブロッキング項目に対応。
+
+---

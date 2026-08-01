@@ -510,4 +510,25 @@ mod tests {
 
         assert!(detector.is_in_use(file.path()));
     }
+
+    proptest::proptest! {
+        /// PBT-02(往復性): 日付を"%Y%m%d"形式でファイル名に埋め込み、FilenameDateRuleで
+        /// 抽出した日付が元の日付と一致する
+        #[test]
+        fn filename_date_rule_round_trips_formatted_dates(
+            year in 2000i32..2100,
+            month in 1u32..13,
+            day in 1u32..29,
+        ) {
+            let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+            let file_name = format!("access-{}.log", date.format("%Y%m%d"));
+            let rules = vec![FilenameDateRule {
+                regex: r"^access-(?P<date>\d{8})\.log$".to_string(),
+                format: "%Y%m%d".to_string(),
+            }];
+
+            let extracted = extract_filename_date(&rules, &file_name).unwrap();
+            proptest::prop_assert_eq!(extracted.format("%Y%m%d").to_string(), date.format("%Y%m%d").to_string());
+        }
+    }
 }

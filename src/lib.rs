@@ -22,3 +22,6 @@ pub mod notify;
 pub mod pipeline;
 pub mod relocate;
 pub mod scan;
+
+#[cfg(test)]
+mod test_support;

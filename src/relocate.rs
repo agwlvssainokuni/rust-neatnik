@@ -293,19 +293,11 @@ mod tests {
 
     proptest! {
         #[test]
-        fn relocated_file_mtime_always_matches_basis_datetime(
-            year in 2020i32..2030,
-            month in 1u32..13,
-            day in 1u32..28,
-            hour in 0u32..24,
-            minute in 0u32..60,
-            second in 0u32..60,
-        ) {
+        fn relocated_file_mtime_always_matches_basis_datetime(basis in crate::test_support::arb_utc_datetime()) {
             let source_dir = tempdir().unwrap();
             let dest_dir = tempdir().unwrap();
             let source = source_dir.path().join("a.log");
             fs::write(&source, b"hello").unwrap();
-            let basis = Utc.with_ymd_and_hms(year, month, day, hour, minute, second).unwrap();
             let candidate = make_candidate(source_dir.path(), source.clone(), basis);
             let config = RelocateConfig {
                 enabled: true,
