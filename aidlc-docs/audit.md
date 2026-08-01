@@ -62,3 +62,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、Request Changes対応(続き)。requirements.md更新。再承認待ち。
 
 ---
+
+## Requirements Analysis - 訂正: FR-2記述の誤り修正
+**Timestamp**: 2026-08-01T14:35:00Z
+**User Input**: "ごめんなさい。質問への回答を訂正します。FR-2の圧縮形式はgzip, tar.gz, zipとしてください(zipを追加)。"
+**AI Response**: 実際には決定事項サマリ(B1行)は既に「gzip/zip/tar.gzすべて含める」で正しく記録されていたが、FR-2本文にAIの不採用提案(gzip+tar.gzへの絞り込み)の文章がそのまま残っており、誤解を招く記述になっていたことが判明。FR-2本文を「gzip/zip/tar.gzの3種類を初期実装からサポートする」と明確に修正。ユーザーの回答自体の訂正ではなく、AI側のドキュメント記述ミスの修正であることを説明。
+**Context**: INCEPTION PHASE - Requirements Analysis、ドキュメント記述の訂正。requirements.md更新。再承認待ち。
+
+---
