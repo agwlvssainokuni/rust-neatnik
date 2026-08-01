@@ -670,3 +670,11 @@
 **Context**: CONSTRUCTION PHASE - Build and Testステージ、ドキュメント最新化・全チェック再実行完了。ユーザー承認待ち。
 
 ---
+
+## v0.2.0リリース
+**Timestamp**: 2026-08-02T08:13:00Z
+**User Input**: "0.2.0としてリリース"
+**AI Response**: `Cargo.toml`/`Cargo.lock`のバージョンを`0.1.1`→`0.2.0`に更新してコミット(`871c6b9`)。設定ファイルスキーマの破壊的変更(targetsの各ステージエントリへの移動、JobConfigのstagesリスト化)を伴うためマイナーバージョンを更新する判断とした。未pushだった15コミット(stages再設計一式)を含め`main`ブランチをpushし(`3260425..871c6b9`)、続けて`v0.2.0`タグを作成・pushした。GitHub Actionsのリリースワークフロー(`.github/workflows/release.yml`)が正常終了(`conclusion: success`、run 30722784739)し、Linux/macOS(x86_64, aarch64)/Windows向けビルドがGitHub Releaseに添付されたことを確認した。
+**Context**: CONSTRUCTION PHASE - Build and Testステージ完了後、v0.2.0リリース実施。
+
+---
