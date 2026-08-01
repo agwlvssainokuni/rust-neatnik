@@ -124,3 +124,11 @@
 **Context**: audit.md自己訂正。
 
 ---
+
+## Requirements Analysis - 補足: ヘルプ系補助機能の追加
+**Timestamp**: 2026-08-01T15:20:00Z
+**User Input**: "他にヘルプ系の機能で入れておくと便利そうなのはある？"
+**AI Response**: `--version`、シェル補完生成(`completions`)、ジョブ一覧表示(`list`)、エラー時の案内強化の4候補を提示し、AskUserQuestionで選択を確認したところ全4件が選択された。FR-6のCLIインターフェース例を拡充し、新規FR-12(ヘルプ系補助機能)を追加。あわせて、以前FR-6とFR-7の間に誤配置されていたFR-11をFR-10の後ろに移動し、FR番号の並び順を修正した。
+**Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
+
+---
