@@ -4,8 +4,8 @@
 - [x] `aidlc-docs/construction/neatnik-cli/nfr-requirements/`(nfr-requirements.md, tech-stack-decisions.md)を確認
 
 ## Step 2: 設計対象
-- [ ] NFR設計パターンの整理(該当カテゴリのみ) — `nfr-design-patterns.md`
-- [ ] 論理コンポーネント構成(lib+bin構成の具体化) — `logical-components.md`
+- [x] NFR設計パターンの整理(該当カテゴリのみ) — `nfr-design-patterns.md`
+- [x] 論理コンポーネント構成(lib+bin構成の具体化) — `logical-components.md`
 
 ## Step 3: カテゴリ評価と質問
 
@@ -27,7 +27,7 @@ C) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — ローカルファイルシステム操作の大半のエラー(権限不足、ディスク容量不足等)はリトライで解消しない性質のものであり、リトライは複雑さの割に効果が薄い。次回実行時の再対象化(BR-7等)が実質的なリトライの役割を果たす
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -42,7 +42,7 @@ C) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: B — 実装コストは低い一方、削除・移動という破壊的操作を扱うツールとして、設定ミス(意図しない`../`混入等)による想定外ディレクトリへの影響を防げる。SECURITY-11(設計時点でのmisuse case考慮)の観点にも合致する
 
-[Answer]:
+[Answer]: B
 
 ---
 

@@ -45,7 +45,7 @@
 ### 🟢 CONSTRUCTION PHASE (Unit: neatnik-cli)
 - [x] Functional Design - EXECUTE (承認済み — 2026-08-01T17:52:00Z)
 - [x] NFR Requirements - EXECUTE (承認済み — 2026-08-01T18:15:00Z)
-- [ ] NFR Design - EXECUTE (in progress)
+- [x] NFR Design - EXECUTE (成果物生成完了、ユーザー承認待ち)
 - [ ] Infrastructure Design - SKIP(クラウドインフラなし)
 - [ ] Code Generation - EXECUTE
 - [ ] Build and Test - EXECUTE
