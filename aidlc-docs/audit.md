@@ -163,3 +163,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design Step 2-4(続き)。requirements.md・functional-design-plan.md更新。他の質問(A1-A3, B1, C1)は回答待ち。
 
 ---
+
+## Functional Design - A1/A2/A3/C1確定、B2追加議論(アーカイブ命名規則)
+**Timestamp**: 2026-08-01T16:00:00Z
+**User Input**: "A1=B, A2=C, A3=A, C1=A, B1,B2についてはもうちょい議論したい。" → "B2について。アーカイブファイルの名前付けはどうなる？" → "OK"
+**AI Response**: A1=B、A2=C、A3=A、C1=A(いずれもAI推奨通り)をfunctional-design-plan.mdに記録。B2の追加議論として、単体ファイル圧縮の命名規則(`<元ファイル名>.<基準日時YYYYMMDDTHHMMSSZ>.<拡張子>`)とバンドル圧縮の命名規則(`<ジョブ名>.<期間キー>.tar.gz`)を提案し、あわせてアーカイブ出力ファイル自体のmtimeも元ファイルの基準日時を継承すべき(バンドルは最大値を採用)という関連要件を提案。合意を得てrequirements.md FR-2に反映。
+**Context**: CONSTRUCTION PHASE - Functional Design Step 2-4(続き)。requirements.md・functional-design-plan.md更新。B1のみ回答待ち。
+
+---

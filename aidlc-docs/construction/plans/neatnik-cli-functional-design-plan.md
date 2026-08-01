@@ -32,7 +32,7 @@ D) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: B — ジョブを削除せずに一時的に無効化しておきたいケースは実務上あり得るため、エラーで止めるより警告に留める方が実用的
 
-[Answer]:
+[Answer]: B
 
 ---
 
@@ -49,7 +49,7 @@ D) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: C — 逐次実行から始めるが、ジョブ処理関数を独立させておけば将来rayon等で並列化する余地を残せる。無理に今から並列化する必要はない
 
-[Answer]:
+[Answer]: C
 
 ---
 
@@ -66,7 +66,7 @@ D) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — 設定ファイルと同じ場所に置く方が発見・デバッグしやすく、OS一時ディレクトリの自動クリーンアップによる意図しないロック消失のリスクも避けられる
 
-[Answer]:
+[Answer]: A
 
 ---
 
@@ -117,7 +117,7 @@ C) Other (please describe after [Answer]: tag below)
 
 **AI推奨**: A — glob同士の重複判定は一般に非自明(実際にマッチするファイルを検査しないと確実な判定ができない)であり、実装コストの割に価値が低い。ドキュメントで注意喚起するに留める
 
-[Answer]:
+[Answer]: A
 
 ---
 
