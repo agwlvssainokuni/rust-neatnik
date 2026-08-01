@@ -171,3 +171,11 @@
 **Context**: CONSTRUCTION PHASE - Functional Design Step 2-4(続き)。requirements.md・functional-design-plan.md更新。B1のみ回答待ち。
 
 ---
+
+## Functional Design - B1確定、全質問回答完了
+**Timestamp**: 2026-08-01T16:40:00Z
+**User Input**: "mtime に基づいて名前をつけることについて。ものによっては、前日分なのにmtimeが日付をまたがる、ということがあり得るのが気になる。" → (AIの提案に対して)"mtime がファイルの検出の話と、圧縮・アーカイブ時の名前付けの根拠の両方に出てくるのがややこしいですね。論点ごとに整理してもらえますか？" → (AIの論点整理に対して)"論点4について確認させて。mtimeが日付をまたいだら、意味合いは前日分だったとしても、mtimeを根拠として当日分として扱う、ということですよね？" → "OKです。"
+**AI Response**: mtimeが関わる4つの論点(基準日時の情報源/単体ファイル命名/mtime継承/バンドルの期間グルーピング)を整理して提示し、「日をまたぐ」懸念は論点4(バンドルグルーピング)固有であることを明確化。B1を「ファイル自身の基準日時でグルーピング、期間境界のタイムゾーンは設定可能、境界付近の曖昧さは機械的判定の既知の限界として受け入れる」で確定。requirements.md FR-2とfunctional-design-plan.mdに反映。これでA1-A3、B1-B2、C1の全質問が回答完了。
+**Context**: CONSTRUCTION PHASE - Functional Design Step 4完了(全質問回答)。次はStep 5(矛盾チェック)・Step 6(成果物生成)へ進む。
+
+---
