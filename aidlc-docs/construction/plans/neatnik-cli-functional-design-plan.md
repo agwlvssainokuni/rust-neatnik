@@ -7,11 +7,11 @@
 - [x] execution-plan.md 確認(単一ユニット、Functional Design実行対象)
 
 ## Step 2: 設計対象(Functional Design Artifacts)
-- [ ] ドメインモデル定義(Job設定、ファイル候補、処理結果等の構造)— `domain-entities.md`
-- [ ] ビジネスルール・バリデーションロジックの詳細化 — `business-rules.md`
-- [ ] パイプライン処理アルゴリズム(スキャン→各ステージ判定→カスケード処理) — `business-logic-model.md`
-- [ ] エラーハンドリングの詳細化 — `business-logic-model.md`に統合
-- [ ] テスト可能プロパティの識別(PBT-01、Partial適用でも実施) — `business-logic-model.md`に統合
+- [x] ドメインモデル定義(Job設定、ファイル候補、処理結果等の構造)— `domain-entities.md`
+- [x] ビジネスルール・バリデーションロジックの詳細化 — `business-rules.md`
+- [x] パイプライン処理アルゴリズム(スキャン→各ステージ判定→カスケード処理) — `business-logic-model.md`
+- [x] エラーハンドリングの詳細化 — `business-logic-model.md`に統合
+- [x] テスト可能プロパティの識別(PBT-01、Partial適用でも実施) — `business-rules.md`/`business-logic-model.md`に統合
 
 ## Step 3: 質問(下記の[Answer]タグに回答してください)
 

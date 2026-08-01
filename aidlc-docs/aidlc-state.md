@@ -43,7 +43,7 @@
 - [ ] Units Generation - SKIP(単一ユニット `neatnik-cli` として進める)
 
 ### 🟢 CONSTRUCTION PHASE (Unit: neatnik-cli)
-- [ ] Functional Design - EXECUTE (in progress)
+- [x] Functional Design - EXECUTE (成果物生成完了、ユーザー承認待ち)
 - [ ] NFR Requirements - EXECUTE
 - [ ] NFR Design - EXECUTE
 - [ ] Infrastructure Design - SKIP(クラウドインフラなし)
