@@ -9,7 +9,7 @@
 ## Workspace State
 - **Existing Code**: No
 - **Reverse Engineering Needed**: No
-- **Workspace Root**: /Users/agawa/Documents/project/git/rust-neatnik
+- **Workspace Root**: ~/Documents/project/git/rust-neatnik
 
 ## Code Location Rules
 - **Application Code**: Workspace root (NEVER in aidlc-docs/)

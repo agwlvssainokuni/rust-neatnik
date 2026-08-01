@@ -462,3 +462,11 @@
 **Context**: 承認待ちと並行する補助タスク(AI-DLCフェーズ外)。デモはCode Generation計画外の追加物のため、既存の17ステップの計画には含めない。
 
 ---
+
+## ドキュメント表記ルールの追加(ホームディレクトリ)
+**Timestamp**: 2026-08-01T22:43:00Z
+**User Input**: "ドキュメントにホームディレクトリを書くときは ~/ でお願いします。"
+**AI Response**: `aidlc-state.md`と`neatnik-cli-code-generation-plan.md`内のホームディレクトリの絶対パス表記を`~/`表記に修正。今後のドキュメント作成・audit.md記録の両方に適用する恒久ルールとしてmemoryに保存(`feedback_home-dir-notation.md`)。
+**Context**: ドキュメント表記の恒久ルール追加。
+
+---

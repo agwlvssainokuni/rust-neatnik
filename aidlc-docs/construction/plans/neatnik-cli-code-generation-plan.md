@@ -4,7 +4,7 @@
 - **Unit**: `neatnik-cli`(単一ユニット。Units Generation/Application Designはスキップ)
 - **参照元**: requirements.md、Functional Design(domain-entities.md, business-rules.md, business-logic-model.md)、NFR Requirements(nfr-requirements.md, tech-stack-decisions.md)、NFR Design(nfr-design-patterns.md, logical-components.md)
 - **依存関係**: なし(Greenfield、単一クレート)
-- **配置場所**: ワークスペースルート(`/Users/agawa/Documents/project/git/rust-neatnik/`)。アプリケーションコードは`aidlc-docs/`配下には置かない
+- **配置場所**: ワークスペースルート(`~/Documents/project/git/rust-neatnik/`)。アプリケーションコードは`aidlc-docs/`配下には置かない
 
 ## 横断的ルール(全ステップ共通)
 - 新規作成する`.rs`ソースファイルには、先頭にApache License 2.0のヘッダーコメントを付与する(著作権者: `agwlvssainokuni`、年: `2026`固定)
