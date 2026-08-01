@@ -132,3 +132,11 @@
 **Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
 
 ---
+
+## Requirements Analysis - 補足: 現在時刻オーバーライド機能の追加
+**Timestamp**: 2026-08-01T15:25:00Z
+**User Input**: "もう一つ。「現在」をいつとして処理するかを引数で指定できるようにしたい。(未来日時の実行を現在エミュレートできるように)"
+**AI Response**: 新規FR-13(現在時刻のオーバーライド)を追加。`--now <日時>`オプションで全ての基準日時判定における「現在時刻」を上書きできるようにし、システム時計を変更せずに未来日時をエミュレートした動作確認(特に`--dry-run`との組み合わせ)を可能にする。実装上はClock抽象の注入が望ましく、NFR-PBTとの関連も明記。FR-6のCLI使用例にも`--now`を追記。
+**Context**: INCEPTION PHASE - Requirements Analysis、要件追加検討(続き)。requirements.md更新。
+
+---

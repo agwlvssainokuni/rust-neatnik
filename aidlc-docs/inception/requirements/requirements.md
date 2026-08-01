@@ -100,7 +100,7 @@ YAML設定モデル・バリデーション、圧縮のバンドル方針などN
 
 ### FR-6. CLIインターフェース
 ```
-neatnik run --config config.yaml --job app-server-logs [--dry-run]
+neatnik run --config config.yaml --job app-server-logs [--dry-run] [--now <datetime>]
 neatnik run --config config.yaml --all
 neatnik validate --config config.yaml
 neatnik init [--output config.yaml]
@@ -114,6 +114,7 @@ neatnik --version
 - **`run`コマンド実行時も、`validate`相当の内部バリデーションを常に自動実行し、不正な設定なら処理前に中断する**(Q C4=A)
 - `init`: サンプル設定ファイルを生成する独立コマンド(FR-11参照)
 - `list`/`completions`/`--version`: ヘルプ系補助機能(FR-12参照)
+- `--now`: 現在時刻をオーバーライドする共通オプション(FR-13参照)
 
 ### FR-7. 設定方式(YAML)
 - ジョブ単位(対象ディレクトリ×ルールの組)で設定する
@@ -148,6 +149,13 @@ neatnik --version
 - **エラーメッセージの親切設計**: エラー発生時にも「次に何をすべきか」を案内する一貫した思想を持つ
   - 設定ファイルに未知のフィールドがある場合、類似する既知フィールド名を候補として提示する
   - `--config`未指定時や指定ファイルが存在しない場合、`neatnik init`の実行を提案する
+
+### FR-13. 現在時刻のオーバーライド(仮想時刻指定)
+- `run`/`validate`/`list`等、日時判定に関わるコマンドで共通の**`--now <日時>`**オプションを指定可能とする
+  - 指定した場合、内部の全ての「基準日時からの経過日数」判定において、システムの実時刻の代わりに指定日時を「現在時刻」として扱う
+  - 省略時はシステムの実時刻を使用する(デフォルト動作は変わらない)
+- **用途**: システムの時計を変更せずに、未来日時をエミュレートした動作確認ができるようにする(例: `neatnik run --config config.yaml --dry-run --now 2027-01-01T00:00:00Z`で「1年後に実行したら何が起きるか」を安全に確認できる)
+- **実装上の考慮**(Functional Designで具体化): 「現在時刻取得」処理はテスト容易性のため抽象化する(例: Clock抽象の注入)ことが望ましい。これはNFR-PBT(時刻依存ロジックのプロパティテストで任意の時刻を注入できる設計)とも関連する
 
 ## 4. 非機能要件
 
