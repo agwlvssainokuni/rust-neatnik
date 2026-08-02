@@ -76,9 +76,10 @@ jobs:
 
     # 2つ目のジョブの例: バンドル圧縮(bundle: daily)。単体ファイル圧縮(上のジョブ)との
     # 違いはarchiveステージの"bundle"設定のみ。基準日時が同じ期間(ここでは日次)に
-    # 属する複数ファイルをまとめて1つの<name>.<ターゲット名>.<期間キー>.tar.gzに圧縮する
-    # (バンドル圧縮の出力は常にtar.gz固定であり、formatは単体ファイル圧縮(bundle: none)
-    # にのみ適用される)
+    # 属する複数ファイルをまとめて1つの<name>.<ターゲット名>.<期間キー>.<拡張子>に圧縮する
+    # (拡張子・形式はformatにより決まる。zip指定で複数ファイルを1つのzipに、
+    # gzip/tar.gz指定で複数ファイルを1つのtar.gzにまとめる。gzip単体では複数
+    # ファイルをまとめられないためtar.gzと同じ扱いになる)
     stages:
       - type: archive
         name: worker-batch-logs-archive

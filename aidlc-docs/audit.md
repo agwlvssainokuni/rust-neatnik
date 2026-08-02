@@ -716,3 +716,11 @@
 **Context**: CONSTRUCTION PHASE完了後、利用者向けドキュメント(README設定リファレンス)の充実。
 
 ---
+
+## バンドル圧縮のzip対応追加(BR-8改訂)
+**Timestamp**: 2026-08-02T09:55:00Z
+**User Input**: "archive.format の説明に「バンドル圧縮(bundleがnone以外)の出力形式は常にtar.gz固定であり、この値は無視される」とありますが、バンドルはtar.gzまたはzip、単一ファイルは全フォーマットOKだと思っていました。(単一ファイルは単体でのgzipも1ファイルだけのアーカイブもあり)" → (README記載が実装・設計ドキュメント(business-rules.md BR-8)と一致していることを提示したところ)「BR-8のバンドル圧縮名は、「ターゲット名」の入れ方を反映したものと読解していました(.tar.gzは例で.zipもOKと読解していた)。バンドルをtar.gzとzipの両方に対応させてください。」
+**AI Response**: `src/archive.rs`を改修し、バンドル圧縮(`bundle`がnone以外)が`format`に応じて出力形式を選べるようにした。`ArchiveFormat::bundle_extension()`を追加し、`zip`指定時は複数ファイルを1つのzipに(新設の`write_zip_bundle`関数)、`gzip`/`tar.gz`指定時は従来どおり1つのtar.gzにまとめる(gzip単体では複数ファイルをまとめられないため、バンドルモードでは`gzip`は`tar.gz`と同じ扱いとし、`format`省略時の既定値`gzip`でも従来どおりtar.gz出力になる後方互換を維持)。`ArchiveNamer::bundle_name`に`format`引数を追加し、拡張子(`tar.gz`/`zip`)を動的に決定するよう変更。単体テスト3件(`bundle_name_matches_br8_format`更新、`bundle_name_uses_tar_gz_for_gzip_format_too`、`bundle_name_uses_zip_extension_for_zip_format`)と、zipバンドルの内容往復検証テスト(`run_bundle_supports_zip_format_and_contains_all_members`)を追加。`business-rules.md`のBR-8、README.mdのarchiveステージ`format`説明・命名規則、`config.example.{en,ja}.yaml`のworker-batch-logsジョブのコメントを、新しい挙動に合わせて修正した。一時ディレクトリでの実CLI実行(`neatnik run`)でzipバンドルが実際に生成され`unzip -l`で2ファイル分の内容が確認できることも検証した。`cargo test --lib`(77件)・`cargo test --test cli`(22件)・`cargo clippy --all-targets -- -D warnings`・`cargo fmt --check`いずれも成功。
+**Context**: CONSTRUCTION PHASE完了後、v0.2.0リリース後の機能追加(バンドル圧縮のzip形式対応)。
+
+---

@@ -103,7 +103,7 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
 | `name` | 必須 | このarchiveエントリの識別子。バンドル命名に使う |
 | `targets` | 必須(空不可) | 監視対象(上表`targets`参照) |
 | `after_days` | 省略可、既定`0` | この日数以上経過したファイルを圧縮対象にする |
-| `format` | 省略可、既定`gzip` | `gzip` \| `zip` \| `tar.gz`。**バンドル圧縮(`bundle`がnone以外)の出力形式は常にtar.gz固定であり、この値は無視される** |
+| `format` | 省略可、既定`gzip` | `gzip` \| `zip` \| `tar.gz`。バンドル圧縮(`bundle`がnone以外)では、複数ファイルをまとめられない`gzip`は`tar.gz`として扱われる(`gzip`と`tar.gz`は同じ結果になる)。`zip`を指定すると複数ファイルを1つのzipにまとめる |
 | `bundle` | 省略可、既定`none` | `none`(ファイル1件ごとに個別圧縮) \| `daily` \| `weekly` \| `monthly`(同じ期間に属する複数ファイルを1つにまとめて圧縮) |
 | `bundle_timezone` | 省略可、既定はローカルタイムゾーン | バンドルの期間境界(日次/週次/月次の区切り)を計算するIANAタイムゾーン名(例: `Asia/Tokyo`) |
 | `keep_original` | 省略可、既定`false` | 圧縮後に元ファイルを残すか |
@@ -111,7 +111,7 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
 
 命名規則:
 - 単体ファイル圧縮(`bundle: none`): `<元ファイル名>.<基準日時YYYYMMDDTHHMMSSZ>.<拡張子>`を元ファイルと同じディレクトリに作る
-- バンドル圧縮: `<name>.<ターゲットのname>.<期間キー>.tar.gz`をターゲットの`basedir`直下に作る。期間キーは`daily`が`YYYY-MM-DD`、`weekly`が`YYYY-Www`(ISO週番号)、`monthly`が`YYYY-MM`
+- バンドル圧縮: `<name>.<ターゲットのname>.<期間キー>.<拡張子>`をターゲットの`basedir`直下に作る。拡張子は`format`が`zip`なら`zip`、`gzip`/`tar.gz`なら`tar.gz`。期間キーは`daily`が`YYYY-MM-DD`、`weekly`が`YYYY-Www`(ISO週番号)、`monthly`が`YYYY-MM`
 - いずれも冪等: 出力先に同名ファイルが既に存在する場合は再作成しない
 
 ### relocateステージ(退避)

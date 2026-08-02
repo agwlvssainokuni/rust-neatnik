@@ -38,6 +38,15 @@ impl ArchiveFormat {
             ArchiveFormat::TarGz => "tar.gz",
         }
     }
+
+    /// バンドル圧縮の拡張子。gzip単体では複数ファイルをまとめられないため、
+    /// `tar.gz`として扱う(BR-8)
+    fn bundle_extension(&self) -> &'static str {
+        match self {
+            ArchiveFormat::Zip => "zip",
+            ArchiveFormat::Gzip | ArchiveFormat::TarGz => "tar.gz",
+        }
+    }
 }
 
 /// アーカイブファイルの命名規則(BR-8)。
@@ -59,14 +68,19 @@ impl ArchiveNamer {
         parent.join(format!("{file_name}.{timestamp}.{}", format.extension()))
     }
 
-    /// バンドル圧縮の命名: `<ジョブ名>.<ターゲット名>.<期間キー>.tar.gz`。出力先はターゲットの`basedir`直下
+    /// バンドル圧縮の命名: `<archive名>.<ターゲット名>.<期間キー>.<拡張子>`。拡張子は`format`により
+    /// `tar.gz`または`zip`(BR-8)。出力先はターゲットの`basedir`直下
     pub fn bundle_name(
         archive_name: &str,
         target_name: &str,
         period_key: &str,
         basedir: &Path,
+        format: ArchiveFormat,
     ) -> PathBuf {
-        basedir.join(format!("{archive_name}.{target_name}.{period_key}.tar.gz"))
+        basedir.join(format!(
+            "{archive_name}.{target_name}.{period_key}.{}",
+            format.bundle_extension()
+        ))
     }
 }
 
@@ -214,8 +228,13 @@ fn run_bundle_group(
     members: &[&FileCandidate],
     config: &ArchiveConfig,
 ) -> Result<BundleRunResult, ArchiveError> {
-    let bundle_path =
-        ArchiveNamer::bundle_name(archive_name, &target.name, period_key, &target.basedir);
+    let bundle_path = ArchiveNamer::bundle_name(
+        archive_name,
+        &target.name,
+        period_key,
+        &target.basedir,
+        config.format,
+    );
 
     if let Ok(metadata) = fs::metadata(&bundle_path) {
         let existing_mtime: DateTime<Utc> = metadata
@@ -273,7 +292,10 @@ fn run_bundle_group(
         .collect();
 
     let temp_path = temp_path_for(&bundle_path);
-    write_tar_gz(&entries, &temp_path)?;
+    match config.format {
+        ArchiveFormat::Zip => write_zip_bundle(&entries, &temp_path)?,
+        ArchiveFormat::Gzip | ArchiveFormat::TarGz => write_tar_gz(&entries, &temp_path)?,
+    }
     fs::rename(&temp_path, &bundle_path).map_err(|source| ArchiveError::Create {
         path: bundle_path.clone(),
         source,
@@ -416,6 +438,40 @@ fn write_tar_gz(entries: &[(PathBuf, String)], destination: &Path) -> Result<(),
     Ok(())
 }
 
+/// バンドル圧縮のzip形式(BR-8)。単体ファイルのzip圧縮(`write_zip_single`)と異なり、
+/// 複数エントリを1つのzipにまとめる
+fn write_zip_bundle(entries: &[(PathBuf, String)], destination: &Path) -> Result<(), ArchiveError> {
+    let file = fs::File::create(destination).map_err(|source_err| ArchiveError::Create {
+        path: destination.to_path_buf(),
+        source: source_err,
+    })?;
+    let mut zip = zip::ZipWriter::new(file);
+    for (path, arcname) in entries {
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file(arcname, options)
+            .map_err(|e| ArchiveError::WriteEntry {
+                archive: destination.to_path_buf(),
+                entry: path.clone(),
+                source: io_err(e),
+            })?;
+        let mut input = fs::File::open(path).map_err(|source_err| ArchiveError::Create {
+            path: path.clone(),
+            source: source_err,
+        })?;
+        std::io::copy(&mut input, &mut zip).map_err(|source_err| ArchiveError::WriteEntry {
+            archive: destination.to_path_buf(),
+            entry: path.clone(),
+            source: source_err,
+        })?;
+    }
+    zip.finish().map_err(|e| ArchiveError::Create {
+        path: destination.to_path_buf(),
+        source: io_err(e),
+    })?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,10 +522,41 @@ mod tests {
             "var-log-app",
             "2026-07-25",
             Path::new("/var/log/app"),
+            ArchiveFormat::TarGz,
         );
         assert_eq!(
             name,
             PathBuf::from("/var/log/app/app-server-logs.var-log-app.2026-07-25.tar.gz")
+        );
+    }
+
+    #[test]
+    fn bundle_name_uses_tar_gz_for_gzip_format_too() {
+        let name = ArchiveNamer::bundle_name(
+            "app-server-logs",
+            "var-log-app",
+            "2026-07-25",
+            Path::new("/var/log/app"),
+            ArchiveFormat::Gzip,
+        );
+        assert_eq!(
+            name,
+            PathBuf::from("/var/log/app/app-server-logs.var-log-app.2026-07-25.tar.gz")
+        );
+    }
+
+    #[test]
+    fn bundle_name_uses_zip_extension_for_zip_format() {
+        let name = ArchiveNamer::bundle_name(
+            "app-server-logs",
+            "var-log-app",
+            "2026-07-25",
+            Path::new("/var/log/app"),
+            ArchiveFormat::Zip,
+        );
+        assert_eq!(
+            name,
+            PathBuf::from("/var/log/app/app-server-logs.var-log-app.2026-07-25.zip")
         );
     }
 
@@ -635,6 +722,59 @@ mod tests {
                 .format("%Y-%m-%dT%H:%M:%S")
                 .to_string(),
             "2026-07-25T05:00:00"
+        );
+    }
+
+    #[test]
+    fn run_bundle_supports_zip_format_and_contains_all_members() {
+        use std::io::Read;
+
+        let dir = tempdir().unwrap();
+        let file_a = dir.path().join("a.log");
+        let file_b = dir.path().join("b.log");
+        fs::write(&file_a, b"aaa").unwrap();
+        fs::write(&file_b, b"bbbbb").unwrap();
+
+        let basis = Utc.with_ymd_and_hms(2026, 7, 25, 1, 0, 0).unwrap();
+        let candidates = vec![
+            make_candidate(dir.path(), "t", file_a.clone(), basis),
+            make_candidate(dir.path(), "t", file_b.clone(), basis),
+        ];
+        let target = make_target_ref(dir.path(), "t");
+        let config = ArchiveConfig {
+            bundle: BundleKind::Daily,
+            bundle_timezone: Some("UTC".to_string()),
+            format: ArchiveFormat::Zip,
+            ..ArchiveConfig::default()
+        };
+
+        let results = run_bundle("job", &target, &candidates, &config).unwrap();
+        assert_eq!(results.len(), 1);
+        let bundle = results[0].outcome.as_ref().unwrap();
+        assert!(bundle.created);
+        assert!(
+            bundle.bundle_path.to_string_lossy().ends_with(".zip"),
+            "zip format bundle should have a .zip extension, got {:?}",
+            bundle.bundle_path
+        );
+        assert!(!file_a.exists());
+        assert!(!file_b.exists());
+
+        let file = fs::File::open(&bundle.bundle_path).unwrap();
+        let mut zip = zip::ZipArchive::new(file).unwrap();
+        assert_eq!(zip.len(), 2);
+        let mut contents = BTreeMap::new();
+        for i in 0..zip.len() {
+            let mut entry = zip.by_index(i).unwrap();
+            let name = entry.name().to_string();
+            let mut buf = Vec::new();
+            entry.read_to_end(&mut buf).unwrap();
+            contents.insert(name, buf);
+        }
+        assert_eq!(contents.get("a.log").map(Vec::as_slice), Some(&b"aaa"[..]));
+        assert_eq!(
+            contents.get("b.log").map(Vec::as_slice),
+            Some(&b"bbbbb"[..])
         );
     }
 

@@ -78,8 +78,10 @@ jobs:
     # difference from single-file compression (the job above) is the archive
     # stage's "bundle" setting. Files whose basis datetime falls within the
     # same period (daily, here) are grouped into a single
-    # <name>.<target>.<period>.tar.gz (bundle output is always tar.gz;
-    # "format" only applies to single-file compression, bundle: none)
+    # <name>.<target>.<period>.<extension> (extension/format follows
+    # "format": zip bundles multiple files into one .zip; gzip/tar.gz bundle
+    # them into one .tar.gz. Plain gzip can't hold multiple files by itself,
+    # so it behaves the same as tar.gz in bundle mode)
     stages:
       - type: archive
         name: worker-batch-logs-archive
