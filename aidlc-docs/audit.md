@@ -732,3 +732,11 @@
 **Context**: v0.2.0リリース後の追加改修をv0.2.1としてリリース。`main`ブランチをpush(`d36b7b3..ee2d78f`)、`v0.2.1`タグを作成・pushし、GitHub Actionsのリリースワークフロー(run 30725932302)が`conclusion: success`で完了したことを確認した(Linux/macOS(x86_64, aarch64)/Windows向けビルドをGitHub Releaseに添付)。
 
 ---
+
+## デモへのディレクトリ階層の捌き方の追加
+**Timestamp**: 2026-08-02T10:30:00Z
+**User Input**: "デモに、階層の捌きを見られるよう追加してください。"
+**AI Response**: `demo/run-demo.sh`に階層構造の扱いを示す要素を追加した。(1) 単体ファイル圧縮の対象を、フラットな1ファイルから`logs/single/service-a/access.log`・`logs/single/service-b/access.log`というサブディレクトリ構成に変更し、archiveの`targets.include`を`["*.log"]`から`["**/*.log"]`(再帰走査)に変更。退避(`layout: preserve`)後、`storage/`配下でも`service-a/`・`service-b/`の階層がそのまま保たれることを確認できるようにした。(2) 対比用の新規ジョブ`layout-comparison-job`を追加し、`logs/layout-demo/team-x/report.log`・`logs/layout-demo/team-y/report.log`(あえて同名ファイルを異なるサブディレクトリに配置)を`layout: year_month`で退避する構成にした。year_monthは元のディレクトリ階層を無視し基準日時のYYYY/MM単位に再分類するため、この2ファイルは`storage-year-month/2026/08/`で名前が衝突し、`on_conflict: rename`により`report.log.<日時>_1.gz`のような連番が付与される。実行して`layout: preserve`と`layout: year_month`の違い(階層保持 vs 階層無視+再分類+衝突解決)が意図通り確認できることを検証済み。
+**Context**: v0.2.1リリース後のデモスクリプト拡充(ディレクトリ階層の扱いの可視化)。
+
+---
