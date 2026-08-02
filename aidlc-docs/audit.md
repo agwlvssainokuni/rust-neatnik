@@ -708,3 +708,11 @@
 **Context**: CONSTRUCTION PHASE完了後、利用者向けドキュメント(サンプル設定ファイル・README)の充実。
 
 ---
+
+## README.mdへの設定項目リファレンス追加
+**Timestamp**: 2026-08-02T09:40:00Z
+**User Input**: "サンプル設定ファイルに「詳細な各項目の意味は README.md を参照してください。」とあります。これが嘘にならないようREADME.mdに各項目の意味を書くべきだと思います。"
+**AI Response**: `config.rs`/`archive.rs`/`relocate.rs`/`delete.rs`/`scan.rs`/`pipeline.rs`/`lock.rs`のソースを確認し、README.mdの「設定ファイル」節を全項目リファレンス付きに書き直した。`targets`(basedir/name/include/exclude/basis/filename_date_rules)、archiveステージ(name/targets/after_days/format/bundle/bundle_timezone/keep_original/on_stale_bundle_member、命名規則、バンドルは常にtar.gz固定でformatが無視される点)、relocateステージ(targets/after_days/destination/layout/on_conflict、mtime引き継ぎ)、deleteステージ(targets/after_days/safety_brake.enforce/count_threshold/size_threshold_gb、超過は「超えたら」であって「以上」ではない点)を、必須/既定値付きの表形式で追加。あわせて経過日数判定が「基準日時からの経過日数 >= after_days」(実時間ベース、86400秒割りの整数部)であること、ジョブ単位のロックファイル命名(`.<job名>.lock`)、write-guard検出方式(Unix: flock+直近5秒以内更新、Windows: 共有モードオープン試行)を共通事項として追記した。
+**Context**: CONSTRUCTION PHASE完了後、利用者向けドキュメント(README設定リファレンス)の充実。
+
+---
