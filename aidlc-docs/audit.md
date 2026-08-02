@@ -740,3 +740,11 @@
 **Context**: v0.2.1リリース後のデモスクリプト拡充(ディレクトリ階層の扱いの可視化)。
 
 ---
+
+## デモへのバンドル圧縮の階層の捌き方の追加
+**Timestamp**: 2026-08-02T10:35:00Z
+**User Input**: "バンドルも。"
+**AI Response**: バンドル圧縮(demo-job-archive-bundle)の対象を、フラットな`worker-1/2/3.log`から`logs/bundle/region-a/worker-1.log`・`region-a/worker-2.log`・`region-b/worker-3.log`というサブディレクトリ構成に変更し、`targets.include`を`["*.log"]`から`["**/*.log"]`(再帰走査)に変更した。バンドル自体はターゲット単位で1つのtar.gzにまとまる(サブディレクトリごとに分かれない)一方、各ファイルの相対パス(`region-a/worker-1.log`等)はバンドル内部のエントリ名としてそのまま保持されることを、新設の`show_bundle_contents`(`tar -tzf`でバンドル内部のエントリ一覧を表示)で確認できるようにした。実行してバンドル内部に`region-a/worker-1.log`・`region-a/worker-2.log`・`region-b/worker-3.log`という相対パスが保持されていることを確認済み。
+**Context**: v0.2.1リリース後のデモスクリプト拡充(バンドル圧縮における階層の扱いの可視化)。
+
+---

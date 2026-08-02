@@ -28,7 +28,8 @@
 #   - ディレクトリ階層の捌き方: `include: ["**/*.log"]`によるサブディレクトリを
 #     含む再帰的な走査、退避時の`layout: preserve`(basedirからの相対階層を保持)と
 #     `layout: year_month`(階層を無視し基準日時のYYYY/MM単位に再分類、同名ファイルの
-#     衝突は`on_conflict`で解決)の違い
+#     衝突は`on_conflict`で解決)の違い、バンドル圧縮ではサブディレクトリ構成の
+#     ファイルをまとめても各ファイルの相対パスがtar.gz/zip内部にそのまま保持されること
 #
 # ステージ間で`targets`を共有しない設計(README参照)のため、各ステージは自身の
 # targets/includeで前段の出力を監視する。`--now`はシステム時計を変更せずに
@@ -117,7 +118,8 @@ NEATNIK="$REPO_ROOT/target/release/neatnik"
 
 section "デモ用ワークスペースを初期化します: $WORKSPACE"
 rm -rf "$WORKSPACE"
-mkdir -p "$SINGLE_DIR/service-a" "$SINGLE_DIR/service-b" "$BUNDLE_DIR" \
+mkdir -p "$SINGLE_DIR/service-a" "$SINGLE_DIR/service-b" \
+    "$BUNDLE_DIR/region-a" "$BUNDLE_DIR/region-b" \
     "$LAYOUT_DIR/team-x" "$LAYOUT_DIR/team-y" "$STORAGE_DIR" "$STORAGE_YEAR_MONTH_DIR"
 
 REFERENCE_EPOCH=$(($(date +%s) - 60))
@@ -128,10 +130,12 @@ REFERENCE_EPOCH=$(($(date +%s) - 60))
 echo "service a access log" > "$SINGLE_DIR/service-a/access.log"
 echo "service b access log" > "$SINGLE_DIR/service-b/access.log"
 
-# バンドル圧縮(bundle: daily)の対象。同じ日に属する複数ファイルを1つのtar.gzにまとめる
-echo "worker 1 output" > "$BUNDLE_DIR/worker-1.log"
-echo "worker 2 output" > "$BUNDLE_DIR/worker-2.log"
-echo "worker 3 output" > "$BUNDLE_DIR/worker-3.log"
+# バンドル圧縮(bundle: daily)の対象。同じ日に属する複数ファイルを1つのtar.gzにまとめる。
+# region-a/、region-b/のサブディレクトリに分けて配置し、include: ["**/*.log"]による
+# 再帰的な走査と、バンドル内部で相対パス(階層)がそのまま保持されることを確認できるようにする
+echo "worker 1 output" > "$BUNDLE_DIR/region-a/worker-1.log"
+echo "worker 2 output" > "$BUNDLE_DIR/region-a/worker-2.log"
+echo "worker 3 output" > "$BUNDLE_DIR/region-b/worker-3.log"
 
 # layout: preserve と layout: year_month の違いを見せる対象。あえて同じファイル名
 # (report.log)を異なるサブディレクトリ(team-x/、team-y/)に配置する。year_monthは
@@ -144,9 +148,9 @@ echo "team y report" > "$LAYOUT_DIR/team-y/report.log"
 touch_at_offset 0 \
     "$SINGLE_DIR/service-a/access.log" \
     "$SINGLE_DIR/service-b/access.log" \
-    "$BUNDLE_DIR/worker-1.log" \
-    "$BUNDLE_DIR/worker-2.log" \
-    "$BUNDLE_DIR/worker-3.log" \
+    "$BUNDLE_DIR/region-a/worker-1.log" \
+    "$BUNDLE_DIR/region-a/worker-2.log" \
+    "$BUNDLE_DIR/region-b/worker-3.log" \
     "$LAYOUT_DIR/team-x/report.log" \
     "$LAYOUT_DIR/team-y/report.log"
 
@@ -164,13 +168,15 @@ jobs:
         after_days: $ARCHIVE_AFTER_DAYS
         format: gzip
         bundle: none
-      # バンドル圧縮(bundle: daily): 同じ日のファイルをまとめて1つのtar.gzにする
+      # バンドル圧縮(bundle: daily): 同じ日のファイルをまとめて1つのtar.gzにする。
+      # include: ["**/*.log"]でサブディレクトリ(region-a/、region-b/)を再帰的に走査するが、
+      # バンドル自体はターゲット単位で1つにまとまる(サブディレクトリごとに分かれない)
       - type: archive
         name: demo-job-archive-bundle
         targets:
           - basedir: "$BUNDLE_DIR"
             name: workers
-            include: ["*.log"]
+            include: ["**/*.log"]
         after_days: $ARCHIVE_AFTER_DAYS
         format: gzip
         bundle: daily
@@ -240,6 +246,17 @@ show_layout_state() {
     show_dir "storage-year-month(layout: year_month)" "$STORAGE_YEAR_MONTH_DIR"
 }
 
+# バンドル(tar.gz)の内部エントリ名を一覧表示し、region-a/、region-b/の相対パスが
+# バンドル内部にそのまま保持されていることを確認する
+show_bundle_contents() {
+    local bundle
+    bundle="$(find "$BUNDLE_DIR" -name '*.tar.gz' -type f 2>/dev/null | head -n1)"
+    if [ -n "$bundle" ]; then
+        echo "-- $(basename "$bundle") の内部エントリ --"
+        tar -tzf "$bundle"
+    fi
+}
+
 run_at() {
     local days="$1"
     local now
@@ -264,8 +281,11 @@ section "ステージ1b: 圧縮・アーカイブの${ARCHIVE_AFTER_DAYS}日後(
 run_at "$ARCHIVE_AFTER_DAYS"
 show_state
 show_layout_state
+show_bundle_contents
 echo
 echo "-> service-a/、service-b/ それぞれの階層内でその場に.gz化されたことを確認"
+echo "-> region-a/、region-b/ に分かれていた3ファイルは1つのtar.gzにまとまるが、"
+echo "   バンドル内部のエントリ名にはregion-a/、region-b/の相対パスがそのまま保持される"
 
 RELOCATE_UNDER=$((RELOCATE_AFTER_DAYS - 1))
 section "ステージ2a: 退避の${RELOCATE_UNDER}日後(--now +${RELOCATE_UNDER}日、relocate閾値${RELOCATE_AFTER_DAYS}日未満のため何も起きない)"
@@ -295,7 +315,9 @@ section "まとめ"
 cat <<SUMMARY
 - service-a/access.log, service-b/access.log : 単体ファイル圧縮(bundle: none)で
   サブディレクトリごとに個別に.gz化 -> 退避(layout: preserveで階層保持) -> 削除
-- worker-1/2/3.log      : バンドル圧縮(bundle: daily)で1つの.tar.gzにまとめて圧縮 -> 退避 -> 削除
+- region-a/worker-1.log, region-a/worker-2.log, region-b/worker-3.log : バンドル圧縮
+  (bundle: daily)で1つのtar.gzにまとめて圧縮(内部にregion-a/、region-b/の相対パスを
+  保持) -> 退避 -> 削除
 - team-x/report.log, team-y/report.log : layout: year_monthとの対比用。退避先で
   ディレクトリ階層が失われ、同名ファイルどうしが衝突・連番付与されることを確認
 
@@ -307,6 +329,9 @@ cat <<SUMMARY
   - include: ["**/*.log"]によるサブディレクトリの再帰的な走査
   - layout: preserve(階層保持)とlayout: year_month(階層を無視した再分類、
     on_conflict: renameによる衝突解決)の違い
+  - バンドル圧縮では、複数のサブディレクトリにまたがるファイルも1つのアーカイブに
+    まとまるが、各ファイルの相対パス(階層)はアーカイブ内部のエントリ名として
+    そのまま保持される
 ことを確認した。
 
 再実行する場合はこのスクリプトを再度実行してください(workspace/は毎回リセットされます)。
