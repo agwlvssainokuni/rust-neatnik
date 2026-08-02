@@ -233,14 +233,38 @@ fn run_dry_run_reports_counts_without_touching_files() {
         .arg("--dry-run")
         .assert()
         .success()
-        .stdout(predicate::str::contains("archived 1"))
-        .stdout(predicate::str::contains("relocated 0"))
-        .stdout(predicate::str::contains("deleted 0"));
+        .stderr(predicate::str::contains("archived 1"))
+        .stderr(predicate::str::contains("relocated 0"))
+        .stderr(predicate::str::contains("deleted 0"));
 
     assert!(
         log_file.exists(),
         "dry-run must not touch the original file"
     );
+}
+
+#[test]
+fn run_sends_structured_evidence_logs_to_stdout_and_summary_to_stderr() {
+    let source_dir = tempdir().unwrap();
+    let dest_dir = tempdir().unwrap();
+    let log_file = source_dir.path().join("app.log");
+    fs::write(&log_file, b"hello").unwrap();
+    set_old_mtime(&log_file);
+
+    let config_path = source_dir.path().join("config.yaml");
+    write_job_config(&config_path, source_dir.path(), dest_dir.path());
+
+    // 構造化ログ(エビデンス)は標準出力、人間向けサマリは標準エラー出力に分離する方針(2026-08-02)
+    neatnik()
+        .env("RUST_LOG", "info")
+        .args(["run", "--config"])
+        .arg(&config_path)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"archived file\""))
+        .stdout(predicate::str::contains("app.log"))
+        .stderr(predicate::str::contains("archived 1"))
+        .stderr(predicate::str::contains("archived file").not());
 }
 
 #[test]

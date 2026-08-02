@@ -140,6 +140,23 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
 
 完全な例は [`config.example.ja.yaml`](./config.example.ja.yaml)(日本語コメント)または [`config.example.en.yaml`](./config.example.en.yaml)(英語コメント)を参照してください。`neatnik init`は`--lang`/`LANG`環境変数に応じてどちらかと同一内容を出力します。1つ目のジョブ(`app-server-logs`)が単体ファイル圧縮(`bundle: none`)、2つ目のジョブ(`worker-batch-logs`)がバンドル圧縮(`bundle: daily`)の設定例です。
 
+## ログ・実行エビデンス
+
+`neatnik run`は出力を2つのストリームに分離しています。
+
+- **標準出力**: `tracing`による構造化ログ(JSON、1行1イベント)。ハウスキーピングの実行結果(どのファイルをいつ圧縮・退避・削除したか)のエビデンスとして機能します。既定では`warn`以上のみ出力され、archived/relocated/deleted等の成功イベント(`info`レベル)を含めるには`RUST_LOG`環境変数で有効にする必要があります
+- **標準エラー出力**: 人間向けの実況(ジョブごとの集計サマリ、警告、エラーメッセージ)
+
+```sh
+# 成功イベントも含めて標準出力に構造化ログを出す
+RUST_LOG=info neatnik run --config config.yaml
+
+# cronで実行し、構造化ログをファイルに保存する例(logrotate等で別途ローテーションすること)
+RUST_LOG=info neatnik run --config /etc/neatnik/config.yaml >> /var/log/neatnik/neatnik.log 2>&1
+```
+
+systemdサービスとして実行する場合、`RUST_LOG=info`を`Environment=`に設定すれば、標準出力はそのままjournaldに取り込まれます(`journalctl -u <unit> -o json`等で構造化ログを抽出可能)。標準エラー出力(サマリ)も同様にjournaldに記録されますが、`StandardOutput=`/`StandardError=`を分けて設定すれば構造化ログのみを別ファイルに切り出すこともできます。
+
 ## アーキテクチャ
 
 lib(`src/lib.rs`以下)+ bin(`src/main.rs`)構成です。CLIをメインターゲットとしつつ、ファイル走査・アーカイブ命名・ロック等の再利用性の高い部品はライブラリのモジュール(`config`/`scan`/`archive`/`relocate`/`delete`/`lock`/`clock`/`notify`/`error`/`pipeline`)として分離しています。詳細は`cargo doc --open`で生成されるAPIドキュメント、および`aidlc-docs/construction/neatnik-cli/`配下の設計ドキュメントを参照してください。

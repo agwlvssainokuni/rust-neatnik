@@ -222,15 +222,27 @@ fn run_archive_entry(
         }
 
         if dry_run {
+            for candidate in &eligible {
+                tracing::info!(
+                    job = job_name,
+                    stage = "archive",
+                    path = %candidate.path.display(),
+                    bytes = candidate.size_bytes,
+                    dry_run = true,
+                    "would archive file"
+                );
+            }
             summary.archived_count += eligible.len() as u64;
             summary.archived_bytes += eligible.iter().map(|c| c.size_bytes).sum::<u64>();
             continue;
         }
 
         match archive_config.bundle {
-            BundleKind::None => run_single_file_archive(eligible, archive_config, summary),
+            BundleKind::None => {
+                run_single_file_archive(job_name, eligible, archive_config, summary)
+            }
             BundleKind::Daily | BundleKind::Weekly | BundleKind::Monthly => {
-                run_bundle_archive(archive_config, &target_ref, eligible, summary)?;
+                run_bundle_archive(job_name, archive_config, &target_ref, eligible, summary)?;
             }
         }
     }
@@ -238,15 +250,25 @@ fn run_archive_entry(
 }
 
 fn run_single_file_archive(
+    job_name: &str,
     eligible: Vec<FileCandidate>,
     archive_config: &ArchiveConfig,
     summary: &mut JobSummary,
 ) {
     for candidate in eligible {
         match archive::run_single_file(&candidate, archive_config) {
-            Ok(_) => {
+            Ok(result) => {
                 summary.archived_count += 1;
                 summary.archived_bytes += candidate.size_bytes;
+                tracing::info!(
+                    job = job_name,
+                    stage = "archive",
+                    path = %candidate.path.display(),
+                    destination = %result.destination.display(),
+                    bytes = candidate.size_bytes,
+                    format = ?archive_config.format,
+                    "archived file"
+                );
             }
             Err(err) => {
                 summary.failed.push(StageOutcome {
@@ -261,6 +283,7 @@ fn run_single_file_archive(
 }
 
 fn run_bundle_archive(
+    job_name: &str,
     archive_config: &ArchiveConfig,
     target_ref: &WatchTargetRef,
     eligible: Vec<FileCandidate>,
@@ -283,6 +306,15 @@ fn run_bundle_archive(
                         included.iter().map(|candidate| candidate.size_bytes).sum();
                     summary.archived_count += included.len() as u64;
                     summary.archived_bytes += total_bytes;
+                    tracing::info!(
+                        job = job_name,
+                        stage = "archive",
+                        bundle = %bundle.bundle_path.display(),
+                        member_count = included.len(),
+                        members = ?included.iter().map(|c| c.path.display().to_string()).collect::<Vec<_>>(),
+                        bytes = total_bytes,
+                        "archived bundle"
+                    );
                 }
                 for stale_path in &bundle.stale {
                     summary.skipped.push(StageOutcome {
@@ -337,6 +369,14 @@ fn run_relocate_entry(
         }
 
         if dry_run {
+            tracing::info!(
+                job = job_name,
+                stage = "relocate",
+                path = %candidate.path.display(),
+                bytes = candidate.size_bytes,
+                dry_run = true,
+                "would relocate file"
+            );
             summary.relocated_count += 1;
             summary.relocated_bytes += candidate.size_bytes;
             continue;
@@ -347,6 +387,14 @@ fn run_relocate_entry(
                 relocate::RelocateOutcome::Moved => {
                     summary.relocated_count += 1;
                     summary.relocated_bytes += candidate.size_bytes;
+                    tracing::info!(
+                        job = job_name,
+                        stage = "relocate",
+                        path = %candidate.path.display(),
+                        destination = %result.destination.display(),
+                        bytes = candidate.size_bytes,
+                        "relocated file"
+                    );
                 }
                 relocate::RelocateOutcome::Skipped => {
                     summary.skipped.push(StageOutcome {
@@ -411,9 +459,28 @@ fn run_delete_entry(
 
     for (result, candidate) in report.results.into_iter().zip(eligible.iter()) {
         match result.outcome {
-            delete::DeleteOutcome::Deleted | delete::DeleteOutcome::DryRun => {
+            delete::DeleteOutcome::Deleted => {
                 summary.deleted_count += 1;
                 summary.deleted_bytes += candidate.size_bytes;
+                tracing::info!(
+                    job = job_name,
+                    stage = "delete",
+                    path = %result.path.display(),
+                    bytes = candidate.size_bytes,
+                    "deleted file"
+                );
+            }
+            delete::DeleteOutcome::DryRun => {
+                summary.deleted_count += 1;
+                summary.deleted_bytes += candidate.size_bytes;
+                tracing::info!(
+                    job = job_name,
+                    stage = "delete",
+                    path = %result.path.display(),
+                    bytes = candidate.size_bytes,
+                    dry_run = true,
+                    "would delete file"
+                );
             }
             delete::DeleteOutcome::Blocked => {
                 summary.skipped.push(StageOutcome {

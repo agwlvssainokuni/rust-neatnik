@@ -85,8 +85,12 @@ fn resolve_locale() -> Locale {
 }
 
 fn main() -> ExitCode {
+    // 構造化ログ(エビデンス)は標準出力、人間向けのサマリ表示は標準エラー出力に分離する。
+    // cron/systemd等での自動実行時は標準出力をリダイレクトするだけで、実行結果の
+    // JSONログをそのまま保管・後から解析できるようにする
     tracing_subscriber::fmt()
         .json()
+        .with_writer(std::io::stdout)
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
@@ -190,7 +194,7 @@ fn cmd_run(args: RunArgs, locale: Locale) -> anyhow::Result<()> {
     for (job_name, result) in results {
         match result {
             Ok(Some(summary)) => print_summary(&summary, locale),
-            Ok(None) => println!("{}", msg::job_skipped_locked(locale, &job_name)),
+            Ok(None) => eprintln!("{}", msg::job_skipped_locked(locale, &job_name)),
             Err(err) => {
                 had_failure = true;
                 eprintln!("{}", msg::job_failed(locale, &job_name, &err.to_string()));
@@ -268,8 +272,10 @@ fn print_warnings(warnings: &[ValidationWarning], locale: Locale) {
     }
 }
 
+/// `run`のサマリ表示は人間向けの実況(進捗通知)であり、エビデンスとしての実行結果は
+/// tracingの構造化ログ(標準出力)側が担う。そのため標準エラー出力に出す
 fn print_summary(summary: &JobSummary, locale: Locale) {
-    println!(
+    eprintln!(
         "{}",
         msg::job_summary(
             locale,
@@ -283,7 +289,7 @@ fn print_summary(summary: &JobSummary, locale: Locale) {
         )
     );
     if summary.safety_brake_triggered {
-        println!("{}", msg::safety_brake_triggered(locale, &summary.job_name));
+        eprintln!("{}", msg::safety_brake_triggered(locale, &summary.job_name));
     }
     for outcome in &summary.failed {
         eprintln!(

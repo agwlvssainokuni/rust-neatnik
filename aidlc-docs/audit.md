@@ -748,3 +748,11 @@
 **Context**: v0.2.1リリース後のデモスクリプト拡充(バンドル圧縮における階層の扱いの可視化)。
 
 ---
+
+## 実行状況のログ出力(ハウスキーピングのエビデンス)対応
+**Timestamp**: 2026-08-02T11:00:00Z
+**User Input**: "ツールの実行状況を標準出力に出したり、ログファイルに出力したりということも対応した方が良いですかね。ハウスキーピングのエビデンスとして記録が残った方が良いと思うので。" → (現状は`tracing`が`warn`/`error`のみで、成功アクションの記録がなく標準出力に人間向けサマリとJSONログが混在している旨を説明し、ログファイル機能自体は自作せずcron/systemdに任せることを提案したところ)"cronやsystemdのリダイレクトというのでどんなことができるのか知らないので教えてください。"(cron `>>`+logrotate、systemd journald取り込みの仕組みを説明) → "標準出力に出していれば実用上の問題はなくて、ログファイルに出力する機能は不要ということですかね。"(その理解で正しいが、人間向けサマリと構造化ログが同じ標準出力に混在している点、および成功アクションのinfoログがまだ無い点の2つが課題として残ることを指摘) → "構造化ログを基本として、debugオプションを指定したら人間向けメッセージも出す、という方針はどうでしょうか？"(に対し、`--debug`という名前が詳細度と紛らわしいこと、既存の`RUST_LOG`(EnvFilter)で詳細度を制御しストリームを分離する代替案(tracing→stderr、summary→stdout据え置き)を提案) → "正常系の出力を「標準エラー出力」に送るというのはちょっと抵抗感があります。"(構造化ログ(エビデンス)こそが正常系の主結果であるという指摘を受け、割り当てを逆にする代替案(構造化ログ→stdout、summary→stderr)を提示) → "構造化ログ=stdout, summary=stderrの方針でいきましょう。"
+**AI Response**: 合意した方針(構造化ログ=標準出力、人間向けサマリ=標準エラー出力)を実装した。(1) `src/pipeline.rs`: archive(単体ファイル・バンドル両方)/relocate/deleteの各成功パス(dry-run含む)に`tracing::info!`を追加し、`job`/`stage`/`path`/`bytes`/`destination`等のフィールドで個々のファイル操作を記録するようにした(バンドルは`bundle`パス・`member_count`・`members`(各メンバーの元パス一覧)・合計バイト数を記録)。`run_single_file_archive`/`run_bundle_archive`に`job_name`引数を追加。(2) `src/main.rs`: `tracing_subscriber::fmt()`に`.with_writer(std::io::stdout)`を明示し、`print_summary`(ジョブサマリ・セーフティブレーキ発動通知)と`job_skipped_locked`メッセージの出力を`println!`から`eprintln!`に変更した。(3) `tests/cli.rs`: `run_dry_run_reports_counts_without_touching_files`のアサーションを`stdout`→`stderr`に修正し、新規テスト`run_sends_structured_evidence_logs_to_stdout_and_summary_to_stderr`(`RUST_LOG=info`で標準出力にJSON構造化ログ(`archived file`)が、標準エラー出力に人間向けサマリ(`archived 1`)が出ることを検証)を追加した。(4) `README.md`に新セクション「ログ・実行エビデンス」を追加し、標準出力/標準エラー出力の分離方針・`RUST_LOG`環境変数での有効化方法・cron/systemdでの永続化例を記載した。一時ディレクトリでの実CLI実行(`RUST_LOG=info neatnik run`)で標準出力にJSON、標準エラー出力にサマリが出ることを直接確認した。`cargo test --lib`(77件)・`cargo test --test cli`(23件、うち1件を修正・1件新規追加)・`cargo clippy --all-targets -- -D warnings`・`cargo fmt --check`いずれも成功。
+**Context**: v0.2.1リリース後の機能追加(ハウスキーピング実行結果を構造化ログとしてエビデンス化する対応)。ユーザーとの対話で「ログファイル機能の自作は不要、cron/systemdのリダイレクト/journaldに任せる」「構造化ログ=stdout、人間向けサマリ=stderrに分離する」という設計方針が確定した。
+
+---
