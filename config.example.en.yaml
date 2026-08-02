@@ -71,3 +71,49 @@ jobs:
           enforce: true
           count_threshold: 1000
           size_threshold_gb: 50
+
+  - name: worker-batch-logs
+
+    # A second job example: bundle compression (bundle: daily). The only
+    # difference from single-file compression (the job above) is the archive
+    # stage's "bundle" setting. Files whose basis datetime falls within the
+    # same period (daily, here) are grouped into a single
+    # <name>.<target>.<period>.tar.gz (bundle output is always tar.gz;
+    # "format" only applies to single-file compression, bundle: none)
+    stages:
+      - type: archive
+        name: worker-batch-logs-archive
+        targets:
+          - basedir: "/var/log/worker-batch"
+            # Target name used for bundle naming (<name>.<target>.<period>.tar.gz).
+            # Auto-derived from basedir when omitted
+            name: worker-batch
+            include:
+              - "*.log"
+        after_days: 7
+        # daily | weekly | monthly
+        bundle: daily
+        # bundle_timezone: "Asia/Tokyo"  # defaults to the local timezone
+        keep_original: false
+        # How to handle a file whose basis datetime is newer than an existing
+        # bundle for the same period: warn (default) | error
+        on_stale_bundle_member: warn
+
+      # Relocate (move to storage) stage. Watches archive's output above (*.tar.gz)
+      - type: relocate
+        targets:
+          - basedir: "/var/log/worker-batch"
+            include:
+              - "*.tar.gz"
+        after_days: 30
+        destination: "/mnt/storage/worker-batch-logs"
+        layout: preserve
+        on_conflict: rename
+
+      # Delete stage. Watches relocate's destination above
+      - type: delete
+        targets:
+          - basedir: "/mnt/storage/worker-batch-logs"
+            include:
+              - "**/*"
+        after_days: 365

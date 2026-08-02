@@ -700,3 +700,11 @@
 **Context**: CONSTRUCTION PHASE - Build and Test完了後の補助ドキュメント(デモスクリプト)改修。境界値デモの追加。
 
 ---
+
+## サンプル設定ファイルへのバンドルarchive例追加
+**Timestamp**: 2026-08-02T09:30:00Z
+**User Input**: "デモ見直しOKです。利用者向けのドキュメントを充実させたい。サンプル設定ファイルが単一ファイルのみのようなのでバンドルのarchiveの設定例も追加して欲しい。"
+**AI Response**: `config.example.en.yaml`/`config.example.ja.yaml`(`neatnik init`が`include_str!`でそのまま埋め込む、byte-parityを検証する自動テストは存在しないことを事前に調査で確認)に、2つ目のジョブ`worker-batch-logs`としてバンドル圧縮(`bundle: daily`)の設定例を追加した。1つ目のジョブ(`app-server-logs`、`bundle: none`)との違いがarchiveステージの`bundle`設定のみであること、バンドル圧縮の出力は常に`tar.gz`固定で`format`は単体ファイル圧縮にのみ適用されること、バンドル命名に使うターゲット`name`の役割をコメントで説明した。追加後、`neatnik list --config config.example.en.yaml`で両ジョブが正しくパースされること、および一時ディレクトリでの実行確認でバンドルファイル(`<archive名>.<ターゲット名>.<期間キー>.tar.gz`)が実際に生成されることを確認した。あわせてREADME.mdの「設定ファイル」節に、1つ目のジョブが単体ファイル圧縮、2つ目のジョブがバンドル圧縮の例である旨を追記した。`cargo test --test cli`(22件)は全て成功。
+**Context**: CONSTRUCTION PHASE完了後、利用者向けドキュメント(サンプル設定ファイル・README)の充実。
+
+---

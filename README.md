@@ -83,7 +83,7 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
   - **delete**: 削除設定(監視対象`targets`、猶予日数、セーフティブレーキ)
 - **targets**: 各ステージエントリが個別に持つ、監視対象ディレクトリ(`basedir`)と対象ファイルを指定する`include`/`exclude`のglobパターン(複数指定可)。ステージ間で共有しないため、後続ステージが前段の出力(例: archiveが作った`*.gz`、relocateの`destination`)を追跡したい場合は、そのステージ自身の`targets`でその出力パターン/ディレクトリを明示的に指定する必要があります
 
-完全な例は [`config.example.ja.yaml`](./config.example.ja.yaml)(日本語コメント)または [`config.example.en.yaml`](./config.example.en.yaml)(英語コメント)を参照してください。`neatnik init`は`--lang`/`LANG`環境変数に応じてどちらかと同一内容を出力します。
+完全な例は [`config.example.ja.yaml`](./config.example.ja.yaml)(日本語コメント)または [`config.example.en.yaml`](./config.example.en.yaml)(英語コメント)を参照してください。`neatnik init`は`--lang`/`LANG`環境変数に応じてどちらかと同一内容を出力します。1つ目のジョブ(`app-server-logs`)が単体ファイル圧縮(`bundle: none`)、2つ目のジョブ(`worker-batch-logs`)がバンドル圧縮(`bundle: daily`)の設定例です。
 
 ## アーキテクチャ
 
