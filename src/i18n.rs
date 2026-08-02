@@ -117,6 +117,28 @@ mod about {
         }
     }
 
+    pub fn run_long(locale: Locale) -> &'static str {
+        match locale {
+            Locale::En => concat!(
+                "Run configured jobs.\n\n",
+                "Each successful file operation (archive/relocate/delete) is logged to stdout ",
+                "as one structured JSON event (tracing, \"info\" level). By default only ",
+                "warnings and errors are shown; set RUST_LOG=info (or a more verbose level) to ",
+                "include these events. Job summaries and other human-readable messages are ",
+                "written to stderr, so redirecting/collecting stdout alone captures a clean ",
+                "evidence trail of what was actually done."
+            ),
+            Locale::Ja => concat!(
+                "ジョブを実行する。\n\n",
+                "ファイル操作(archive/relocate/delete)の成功イベントは、1件ごとに構造化ログ",
+                "(JSON、tracingのinfoレベル)として標準出力に出力される。既定ではwarn以上のみ",
+                "表示されるため、含めるにはRUST_LOG=info(以上の詳細度)を指定する。ジョブサマリ",
+                "等の人間向けメッセージは標準エラー出力に出力するため、標準出力だけを",
+                "リダイレクト・保存すればハウスキーピングの実行証跡になる。"
+            ),
+        }
+    }
+
     pub fn validate(locale: Locale) -> &'static str {
         match locale {
             Locale::En => "Validate the configuration file",
@@ -209,9 +231,13 @@ pub fn localize_command(cmd: Command, locale: Locale) -> Command {
     let cmd = cmd.about(about::root(locale));
 
     let cmd = cmd.mut_subcommand("run", |sub| {
-        localize_config_opts(sub.about(about::run(locale)), locale)
-            .mut_arg("job", |a| a.help(help::job(locale)))
-            .mut_arg("dry_run", |a| a.help(help::dry_run(locale)))
+        localize_config_opts(
+            sub.about(about::run(locale))
+                .long_about(about::run_long(locale)),
+            locale,
+        )
+        .mut_arg("job", |a| a.help(help::job(locale)))
+        .mut_arg("dry_run", |a| a.help(help::dry_run(locale)))
     });
     let cmd = cmd.mut_subcommand("validate", |sub| {
         localize_config_opts(sub.about(about::validate(locale)), locale)

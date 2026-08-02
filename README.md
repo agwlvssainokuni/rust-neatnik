@@ -147,6 +147,26 @@ LANG=ja_JP.UTF-8 neatnik run --dry-run
 - **標準出力**: `tracing`による構造化ログ(JSON、1行1イベント)。ハウスキーピングの実行結果(どのファイルをいつ圧縮・退避・削除したか)のエビデンスとして機能します。既定では`warn`以上のみ出力され、archived/relocated/deleted等の成功イベント(`info`レベル)を含めるには`RUST_LOG`環境変数で有効にする必要があります
 - **標準エラー出力**: 人間向けの実況(ジョブごとの集計サマリ、警告、エラーメッセージ)
 
+`RUST_LOG=info`で出力される成功イベントの例(実行結果、見やすさのため整形):
+
+```text
+{"timestamp":"2026-08-02T13:43:39.565728Z","level":"INFO","fields":{"message":"archived file","job":"demo-job","stage":"archive","path":"/data/logs/app.log","destination":"/data/logs/app.log.20191231T150000Z.gz","bytes":6,"format":"Gzip"},"target":"neatnik::pipeline"}
+{"timestamp":"2026-08-02T13:43:39.582020Z","level":"INFO","fields":{"message":"archived bundle","job":"demo-job","stage":"archive","bundle":"/data/logs/workers.2019-12-31.tar.gz","member_count":2,"members":"[\"/data/logs/worker-2.log\", \"/data/logs/worker-1.log\"]","bytes":16},"target":"neatnik::pipeline"}
+{"timestamp":"2026-08-02T13:43:39.583345Z","level":"INFO","fields":{"message":"relocated file","job":"demo-job","stage":"relocate","path":"/data/logs/app.log.20191231T150000Z.gz","destination":"/mnt/storage/app.log.20191231T150000Z.gz","bytes":26},"target":"neatnik::pipeline"}
+{"timestamp":"2026-08-02T13:43:39.583903Z","level":"INFO","fields":{"message":"deleted file","job":"demo-job","stage":"delete","path":"/mnt/storage/app.log.20191231T150000Z.gz","bytes":26},"target":"neatnik::pipeline"}
+```
+
+共通フィールドは`timestamp`/`level`/`fields.message`/`job`(ジョブ名)/`fields.stage`(`archive`/`relocate`/`delete`)。ステージ・種別ごとの追加フィールド:
+
+| イベント(`message`) | 追加フィールド |
+|---|---|
+| `archived file`(単体圧縮) | `path`(元ファイル)、`destination`(圧縮後のファイル)、`bytes`、`format` |
+| `archived bundle`(バンドル圧縮) | `bundle`(バンドルファイル)、`member_count`、`members`(まとめた元ファイルのパス一覧)、`bytes`(合計) |
+| `relocated file` | `path`(退避元)、`destination`(退避先)、`bytes` |
+| `deleted file` | `path`、`bytes` |
+
+`--dry-run`実行時は、上記と同じ内容のイベントに`dry_run: true`が付き、`message`も`"would archive file"`のように「would」表現になります(実際にはファイルを変更していないことを区別するため)。
+
 ```sh
 # 成功イベントも含めて標準出力に構造化ログを出す
 RUST_LOG=info neatnik run --config config.yaml

@@ -756,3 +756,11 @@
 **Context**: v0.2.1リリース後の機能追加(ハウスキーピング実行結果を構造化ログとしてエビデンス化する対応)。ユーザーとの対話で「ログファイル機能の自作は不要、cron/systemdのリダイレクト/journaldに任せる」「構造化ログ=stdout、人間向けサマリ=stderrに分離する」という設計方針が確定した。
 
 ---
+
+## stdout/stderr分離の適用範囲確認、構造化ログの具体例提示、ヘルプ・READMEへの追記
+**Timestamp**: 2026-08-02T11:20:00Z
+**User Input**: "run以外も人間向けはstderrにした方が良い？" → (`validate`/`init`/`list`/`completions`/`--version`には競合する2つ目の出力がなく、特に`completions`は`source`での評価に標準出力が必須なため、`run`以外は変更しない方が良いと回答したところ)"OKです。" → "構造化ログが具体的にどのように出力されるか例示してもらえますか？実際に実行した結果でもOKです。"(単体圧縮・バンドル圧縮・退避・削除を含むジョブを一時ディレクトリで実際に`RUST_LOG=info`で実行し、標準出力のJSON4件・標準エラー出力のサマリを提示) → "構造化ログを出力することをREADME.mdに書いておくべきですね。あと、ヘルプにも。"
+**AI Response**: (1) `src/i18n.rs`: `run`サブコマンドに`long_about`(`about::run_long`)を新設し、`neatnik run --help`(詳細ヘルプ)でのみ構造化ログ(標準出力・`RUST_LOG=info`で成功イベントを含める・人間向けメッセージは標準エラー出力)の説明を表示するようにした(`-h`/親コマンドの一覧表示は既存の短い`about`のまま)。英語・日本語両方に対応。(2) `README.md`の「ログ・実行エビデンス」セクションに、実際の実行結果に基づくJSON出力例(`archived file`/`archived bundle`/`relocated file`/`deleted file`の4種)と、イベント種別ごとの追加フィールド一覧表(`path`/`destination`/`bytes`/`format`/`bundle`/`member_count`/`members`)、`--dry-run`時に`dry_run: true`が付く旨を追記した(JSON Lines形式であることを示すためコードフェンスは``json``ではなく``text``を使用、複数トップレベル値のJSON構文エラー扱いを回避)。`cargo test --lib`(77件)・`cargo test --test cli`(23件)・`cargo clippy --all-targets -- -D warnings`・`cargo fmt --check`いずれも成功。`neatnik run --help`/`neatnik run -h`/`neatnik --lang ja run --help`の実際の表示を目視確認した。
+**Context**: 前項の続き。ログ出力方針が確定した後、利用者がその存在・使い方をREADME・CLIヘルプの両方から発見できるようにするドキュメント整備。
+
+---
