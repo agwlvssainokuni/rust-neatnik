@@ -1,6 +1,8 @@
 # Build and Test Summary: neatnik-cli
 
 > **改訂(2026-08-02)**: `targets`をジョブ層からarchive/relocate/delete各ステージエントリ層へ移動し、`JobConfig`を`stages: Vec<StageConfig>`(任意順序・任意回数のリスト)へ再設計した改修に伴い、テスト件数・シナリオ説明・既知の制約を最新化。
+> **改訂(2026-08-03)**: Windows向け手動E2Eデモ(`demo/run-demo.ps1`)を追加。E2E Testsの記載、静的解析欄、既知の制約を更新。
+> **改訂(2026-08-03、続報)**: Windows実機(Rust未導入環境にRustおよびVisual Studio Build Tools C++ワークロードを新規導入)で`cargo build --release`および`demo/run-demo.ps1`のフル実行による検証を完了。実行中に「まとめ」出力の改行崩れ(バッククォート付きヒアストリングの`` `n ``誤展開)を1件発見・修正済み。E2E Tests・既知の制約の記載を実機検証済みに更新。
 
 ## Build Status
 - **Build Tool**: Cargo(rustc/cargo 1.97.0)
@@ -32,7 +34,7 @@
 ### Additional Tests
 - **Contract Tests**: N/A(マイクロサービス構成ではないため対象外)
 - **Security Tests**: Partial(自動テストで確認済みの項目はPass。`cargo-deny`によるサプライチェーンチェックは未インストール環境のため未実行、CI/リリース前の実施を推奨。security-test-instructions.md参照)
-- **E2E Tests**: Pass(`tests/cli.rs`のCLI統合テストがE2Eを兼ねる。加えて`demo/run-demo.sh`による手動E2E確認も実施済み)
+- **E2E Tests**: Pass(`tests/cli.rs`のCLI統合テストがE2Eを兼ねる。加えて`demo/run-demo.sh`(Unix系)・`demo/run-demo.ps1`(Windows系、同一仕様)双方による手動E2E確認を実施済み。Windows版は実機(Rust/Visual Studio Build Tools C++ワークロードを新規導入した環境)で`cargo build --release`から`demo/run-demo.ps1`のフル実行まで確認し、archive(7日)/relocate(30日)/delete(365日)各境界の挙動、`layout: preserve`/`layout: year_month`の差異、バンドルtar.gz内部の相対パス保持がいずれも意図通り動作することを確認した)
 
 ## 静的解析・フォーマット
 - `cargo clippy --all-targets -- -D warnings`: 警告0件
@@ -44,8 +46,9 @@
 2. `keep_original: true`かつ既存アーカイブ/バンドルが退避済みの場合、既存ファイル不在チェックにより重複アーカイブが作成される可能性がある(FR-9設計上の既知の限界)
 3. `cargo-deny`によるサプライチェーンチェックは本環境未インストールのため未実行
 4. ステージ間で`targets`を共有しない設計(2026-08-02改修)のため、後段のステージが前段の出力を追跡できるかは利用者が各エントリの`targets`/`include`を正しく設定することに依存する(archiveの`include`が自身の出力拡張子まで含めてしまう自己参照リスクを含め、ドキュメント上「利用者の責任」として明記済み。BR-2.2のみ静的検証あり)
-
-**解決済みの制約**: Windows版`WriteGuardDetector`(`cfg(windows)`)は、GitHub Actionsのリリースワークフローで実機ビルドを実施し成功を確認済み(2026-08-01)。
+**解決済みの制約**:
+- Windows版`WriteGuardDetector`(`cfg(windows)`)は、GitHub Actionsのリリースワークフローで実機ビルドを実施し成功を確認済み(2026-08-01)。
+- `demo/run-demo.ps1`(Windows版デモ)は、Windows実機で`cargo build --release`からフル実行までの動作検証を完了(2026-08-03)。検証中に発見した出力崩れのバグ(ヒアストリング内のバッククォートエスケープ誤展開)は修正済み。
 
 ## Overall Status
 - **Build**: Success

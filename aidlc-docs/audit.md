@@ -772,3 +772,19 @@
 **Context**: v0.2.1リリース後の追加改修をv0.2.2としてリリース。
 
 ---
+
+## Windows版デモ(demo/run-demo.ps1)の追加
+**Timestamp**: 2026-08-03T00:00:00Z
+**User Input**: "UNIX系のデモは作成済みです。内容を確認してくだい。" → (`demo/README.md`・`demo/run-demo.sh`の内容を確認し要約提示) → "UNIX版と同じ仕様でWindows版のデモを作成してください。" → "Windowsデモを追記してください。"
+**AI Response**: `README.md`のCLI仕様(`run`/`validate`/`init`/`list`/`completions`、`--config`/`--job`/`--dry-run`/`--now`/`--lang`)と`src/scan.rs`のWrite-guard実装(Windowsは共有モードでのオープン試行のみで、Unix版のような「直近5秒以内の更新」チェックは無い)を確認した上で、`demo/run-demo.ps1`(PowerShell 7+版)を`demo/run-demo.sh`と同一仕様(2ジョブ・8段階のシナリオ、単体/バンドル圧縮、layout: preserve/year_monthの対比、境界値検証)で新規作成した。mtime操作・`--now`用RFC3339生成は`[DateTimeOffset]`/`LastWriteTimeUtc`プロパティで実装し、tar.gz内部エントリ確認はWindows標準搭載の`tar.exe`(bsdtar)を使用した。`demo/README.md`をUnix/Windows両対応の記載に更新し、OS間の書き込み中判定の違いを注記した。本環境にはRustツールチェイン(cargo/rustc)が存在せず(システムPATH・RustRoverのビルド機能のいずれでも未検出)、実機実行によるE2E検証はできなかった旨をユーザーに明示した上で、PowerShellパーサーによる構文チェック(エラーなし)とコード・生成`config.yaml`内容の目視レビューのみ実施した。続けて、`aidlc-docs/construction/build-and-test/build-and-test-summary.md`に改訂履歴(2026-08-03)・E2E Tests記載・既知の制約(項目5: Windows版デモの実機未検証)・Next Stepsを追記し、Windowsデモの追加とその未検証範囲を文書化した。
+**Context**: Build and Testステージ(承認待ち)の成果物拡充。既存のUnix版手動E2Eデモに加えてWindows版デモを整備したが、実行環境の制約により実機検証はユーザー側での実施が必要な状態。
+
+---
+
+## Windows版デモ(demo/run-demo.ps1)の実機検証
+**Timestamp**: 2026-08-03T01:00:00Z
+**User Input**: "rustをインストールしました。実行できるか確認してください。" → (`cargo`/`rustc`はインストール済みだが`link.exe`(MSVCリンカ)が無くビルド失敗する旨を報告し、Visual Studio Build Tools導入かGNUツールチェイン導入かの選択を提示したところ)"Visual Studio Build Tools (Recommended)" → (winget導入・ビルド成功・デモ実行成功・出力崩れバグの発見修正を報告した後)"yes"(build-and-test-summary.mdの記載更新への同意)
+**AI Response**: PowerShellツールのシェルセッションが起動時のPATHをキャッシュしており新規インストール分が反映されないことを確認した上で、`$env:USERPROFILE\.cargo\bin`をセッション内PATHに追加して`cargo --version`/`rustc --version`(1.97.1)を確認した。`cargo build --release`が`link.exe`未検出で失敗することを確認し、ユーザーの選択に従い`winget install Microsoft.VisualStudio.2022.BuildTools`(Microsoft.VisualStudio.Workload.VCTools込み)をバックグラウンドで実行、完了(exit code 0)を確認した。再度`cargo build --release`を実行し成功(1m02s)したことを確認後、`demo/run-demo.ps1`をフル実行し、exit code 0で完走、archive(7日)/relocate(30日)/delete(365日)の各境界(6/7日、29/30日、364/365日)で期待通りの挙動、`layout: preserve`/`layout: year_month`の差異(`report.log...Z_1.gz`の連番衝突解決含む)、バンドルtar.gz内部への`region-a/worker-1.log`等相対パスの保持、をすべて実際の出力で確認した。実行中に「まとめ」セクション末尾の出力が`neatnik run --now`の`n`が欠落し改行位置がずれるバグを発見し、原因を「まとめ」ブロックが変数展開ありのヒアストリング(`@"..."@`)内にバッククォート付きコード片(`` `neatnik run --now` ``)を含んでいたためPowerShellが`` `n ``を改行エスケープと誤解釈したことと特定、変数展開が不要なそのブロックを単一引用ヒアストリング(`@'...'@`)に変更して修正し、再実行して改行崩れが解消したことを確認した。最後に、`aidlc-docs/construction/build-and-test/build-and-test-summary.md`の改訂履歴・E2E Tests・既知の制約・解決済みの制約・Next Stepsを、Windows版デモが実機検証済みである内容に更新した。
+**Context**: 前項(Windows版デモの追加)で「本環境にRustツールチェインがなく実機検証未実施」としていた制約を、ユーザーによるRustインストールとVisual Studio Build Tools導入を経て実際に解消した。Build and Testステージの成果物(Windows版デモ含む)が実機検証済みとなり、ステージ承認判断に必要な情報が揃った状態。
+
+---
