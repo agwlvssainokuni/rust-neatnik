@@ -4,7 +4,7 @@
 - **Project Name**: Neatnik(仮称。命名の最終確認は未了 — draft-spec.md 1章参照)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-08-01T08:10:00Z
-- **Current Stage**: CONSTRUCTION - Code Generation (Unit: neatnik-cli)
+- **Current Stage**: CONSTRUCTION - Build and Test完了後の継続的機能追加(Adaptive軽量モード)
 
 ## Workspace State
 - **Existing Code**: No
@@ -48,13 +48,13 @@
 - [x] NFR Design - EXECUTE (承認済み — 2026-08-01T18:28:00Z)
 - [x] Infrastructure Design - SKIP(クラウドインフラなし)
 - [x] Code Generation - EXECUTE (承認済み — 2026-08-02T07:47:00Z、stages再設計改修含む)
-- [ ] Build and Test - EXECUTE (実施完了、承認待ち — 2026-08-02T08:06:00Z、stages再設計に伴う再検証・ドキュメント最新化済み)
+- [x] Build and Test - EXECUTE (実施完了 — 2026-08-02T08:06:00Z。Windows版デモの実機検証完了(2026-08-03T01:00:00Z)を最後の未検証項目の解消として、以降のv0.2.0/v0.2.1/v0.2.2リリース実施(ユーザー指示による)をもって事実上承認されたものとみなす)
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations - PLACEHOLDER
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Build and Test(実施完了、ユーザー承認待ち)
-- **Next Stage**: Operations(placeholder)
-- **Status**: Awaiting user approval
+- **Lifecycle Phase**: CONSTRUCTION(Build and Testステージ完了後、正式フェーズを再開せず軽量な機能追加・ドキュメント整備をAdaptive Workflow Principleに基づき継続中)
+- **Current Stage**: 継続的機能追加・保守(直近: Windows版デモ追加・実機検証、構造化ログ出力対応、README/ヘルプ整備)
+- **Next Stage**: Operations(placeholder、正式着手は未定)
+- **Status**: 最新リリース v0.2.2(2026-08-02、`main`へpush・タグ`v0.2.2`push・GitHub Actionsビルド成功・バイナリ添付確認済み)。直近コミットは`ef6c584`(Windows版デモ追加・実機検証、2026-08-03)。作業ツリーはクリーンで`origin/main`と同期済み。追加のユーザー指示待ち
